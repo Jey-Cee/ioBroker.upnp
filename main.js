@@ -76,28 +76,15 @@ adapter.on('stateChange', function (id, state) {
 // start here!
 adapter.on('ready', main);
 
-var foundIPs = []; //Array for the caught broadcast answers
+var foundIPs = []; // Array for the caught broadcast answers
 
 function main() {
-    adapter.log.debug("main Function");
-
-    var filteredIPs = [];
 
     sendBroadcastToAll();
 
     //Filtering the Device description file addresses, timeout is necessary to wait for all answers
-    setTimeout(function ipFilter() {
-        adapter.log.debug(foundIPs.length + " answers received");
-
-        for (var i = 0; i < foundIPs.length; i++) {
-            if (filteredIPs.indexOf(foundIPs[i]) === -1) {
-                filteredIPs.push(foundIPs[i]);
-            }
-        }
-
-        adapter.log.debug("Found " + filteredIPs.length + " device description files");
-
-        filteredIPs.every(firstDevLookup);
+    setTimeout(function () {
+        adapter.log.debug("Found " + foundIPs.length + " devices");
     }, 5000);
 }
 
@@ -110,7 +97,14 @@ function sendBroadcastToAll() {
         var jsonAnswer = JSON.parse(strHeaders);
         var answer = jsonAnswer.LOCATION;
 
-        foundIPs.push(answer);
+        if (foundIPs.indexOf(answer) === -1) {
+            foundIPs.push(answer);
+
+            // process immediately and do not wait 5 seconds
+            setTimeout(function () {
+                firstDevLookup(answer);
+            }, 500);
+        }
     });
 
     client.search('ssdp:all');
