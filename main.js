@@ -7,9 +7,9 @@
  *
  *  {
  *      "common": {
- *          "name":         "upnp-discovery",                  					// name has to be set and has to be equal to adapters folder name and main file name excluding extension
+ *          "name":         "Upnp",                  					// name has to be set and has to be equal to adapters folder name and main file name excluding extension
  *          "version":      "0.1.0",                    						// use "Semantic Versioning"! see http://semver.org/
- *          "title":        "Upnp Discovery Adapter",  							// Adapter title shown in User Interfaces
+ *          "title":        "Upnp Adapter",  							// Adapter title shown in User Interfaces
  *          "authors":  [                               						// Array of authord
  *              "Jey Cee <jey-cee@live.com>"
  *          ]
@@ -42,7 +42,7 @@ var client = new Client();
 // you have to call the adapter function and pass a options object
 // name has to be set and has to be equal to adapters folder name and main file name excluding extension
 // adapter will be restarted automatically every time as the configuration changed, e.g system.adapter.template.0
-var adapter = utils.adapter('upnp-discovery');
+var adapter = utils.adapter('Upnp');
 
 // is called when adapter shuts down - callback has to be called under any circumstances!
 adapter.on('unload', function (callback) {
