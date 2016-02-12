@@ -1,12 +1,12 @@
 {
     "common": {
-        "name":                     "Upnp",
+        "name":                     "upnp",
         "version": "0.1.0",
-        "title":                    "Upnp adapter",
+        "title":                    "upnp adapter",
         "desc":                     {
- 			"en": "ioBroker Upnp Adapter",
-			"de": "ioBroker Upnp Adapter",
-			"ru": "ioBroker Upnp драйвер как образец"
+ 			"en": "ioBroker upnp Adapter",
+			"de": "ioBroker upnp Adapter",
+			"ru": "ioBroker upnp драйвер как образец"
 	},
         "platform":                 "Javascript/Node.js",
         "mode":                     "daemon",
