@@ -1,7 +1,7 @@
 {
-  "name": "iobroker.upnp-discovery",
+  "name": "iobroker.upnp",
   "version": "0.1.0",
-  "description": "upnp-discovery is looking for upnp devices on Local Network",
+  "description": "upnp is looking for upnp devices on Local Network",
   "author": {
     "name": "Jey Cee",
     "email": "jey-cee@live.com"
@@ -12,17 +12,17 @@
       "email": "jey-cee@live.com"
     }
   ],
-  "homepage": "https://github.com/Jey-Cee/ioBroker.upnp-discovery",
+  "homepage": "https://github.com/Jey-Cee/ioBroker.upnp",
   "license": "MIT",
   "keywords": [
     "ioBroker",
-    "upnp-discovery",
+    "upnp",
     "Smart Home",
     "home automation"
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/Jey-Cee/ioBroker.upnp-discovery"
+    "url": "https://github.com/Jey-Cee/ioBroker.upnp"
   },
   "dependencies": {
 	"node-ssdp": "^2.7.0",
@@ -37,7 +37,7 @@
     "grunt-contrib-jshint": "^0.11.2"
   },
   "bugs": {
-    "url": "https://github.com/Jey-Cee/ioBroker.upnp-discovery/issues"
+    "url": "https://github.com/Jey-Cee/ioBroker.upnp/issues"
   },
   "readmeFilename": "README.md"
 }
