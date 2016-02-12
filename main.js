@@ -7,13 +7,13 @@
  *
  *  {
  *      "common": {
- *          "name":         "Upnp",                  					// name has to be set and has to be equal to adapters folder name and main file name excluding extension
+ *          "name":         "upnp",                  					// name has to be set and has to be equal to adapters folder name and main file name excluding extension
  *          "version":      "0.1.0",                    						// use "Semantic Versioning"! see http://semver.org/
- *          "title":        "Upnp Adapter",  							// Adapter title shown in User Interfaces
+ *          "title":        "upnp Adapter",  							// Adapter title shown in User Interfaces
  *          "authors":  [                               						// Array of authord
  *              "Jey Cee <jey-cee@live.com>"
  *          ]
- *          "desc":         "Discovers Upnp clients on the Network",          	// Adapter description shown in User Interfaces. Can be a language object {de:"...",ru:"..."} or a string
+ *          "desc":         "Discovers upnp clients on the Network",          	// Adapter description shown in User Interfaces. Can be a language object {de:"...",ru:"..."} or a string
  *          "platform":     "Javascript/Node.js",       						// possible values "javascript", "javascript/Node.js" - more coming
  *          "mode":         "daemon",                   						// possible values "daemon", "schedule", "subscribe"
  *          "schedule":     "0 0 * * *"                 						// cron-style schedule. Only needed if mode=schedule
@@ -42,7 +42,7 @@ var client = new Client();
 // you have to call the adapter function and pass a options object
 // name has to be set and has to be equal to adapters folder name and main file name excluding extension
 // adapter will be restarted automatically every time as the configuration changed, e.g system.adapter.template.0
-var adapter = utils.adapter('Upnp');
+var adapter = utils.adapter('upnp');
 
 // is called when adapter shuts down - callback has to be called under any circumstances!
 adapter.on('unload', function (callback) {
