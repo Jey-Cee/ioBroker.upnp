@@ -362,7 +362,7 @@ function firstDevLookup(strLocation) {
                                         adapter.log.debug(i + " " + xmlService + " " + xmlControlURL);
 
                                         adapter.setObject(xmlFN + '.' + xmlTypeOfDevice + '.' + xmlService, {
-                                            type: 'enum',
+                                            type: 'channel',
                                             common: {
                                                 name: xmlService
                                             },
@@ -405,6 +405,7 @@ function firstDevLookup(strLocation) {
                                         adapter.log.debug("Can not read service of " + xmlFN);
                                         xmlService = "Unknown";
                                     }
+                                    adapter.log.debug("Service Name: " + xmlService);
 
                                     try {
                                         xmlServiceType = JSON.stringify(result.root.device.serviceList.service.serviceType);
@@ -447,7 +448,7 @@ function firstDevLookup(strLocation) {
                                     }
 
                                     adapter.setObject(xmlFN + '.' + xmlTypeOfDevice + '.' + xmlService, {
-                                        type: 'enum',
+                                        type: 'channel',
                                         common: {
                                             name: xmlService
 
@@ -654,7 +655,7 @@ function firstDevLookup(strLocation) {
                                                 adapter.log.debug(i + " " + xmlService + " " + xmlControlURL);
 
                                                 adapter.setObject(xmlFN + '.' + xmlTypeOfDevice + '.' + xmlfriendlyName + '.' + xmlService, {
-                                                    type: 'enum',
+                                                    type: 'channel',
                                                     common: {
                                                         name: xmlService
                                                     },
@@ -691,6 +692,7 @@ function firstDevLookup(strLocation) {
                                                 adapter.log.debug("Can not read service of " + xmlfriendlyName);
                                                 xmlService = "Unknown";
                                             }
+                                            adapter.log.debug("Service Name: " + xmlService);
 
                                             try {
                                                 xmlServiceType = JSON.stringify(result.root.device.deviceList.device.serviceList.service.serviceType);
@@ -733,7 +735,7 @@ function firstDevLookup(strLocation) {
                                             }
 
                                             adapter.setObject(xmlFN + '.' + xmlTypeOfDevice + '.' + xmlfriendlyName + '.' +  xmlService, {
-                                                type: 'enum',
+                                                type: 'channel',
                                                 common: {
                                                     name: xmlService
 
@@ -931,7 +933,7 @@ function firstDevLookup(strLocation) {
                                             adapter.log.debug(i + " " + xmlService + " " + xmlControlURL);
 
                                             adapter.setObject(xmlFN + '.' + xmlTypeOfDevice + '.' + xmlfriendlyName + '.' + xmlService, {
-                                                type: 'enum',
+                                                type: 'channel',
                                                 common: {
                                                     name: xmlService
                                                 },
@@ -969,6 +971,7 @@ function firstDevLookup(strLocation) {
                                             adapter.log.debug("Can not read service of " + xmlfriendlyName);
                                             xmlService = "Unknown";
                                         }
+                                        adapter.log.debug("Service Name: " + xmlService);
 
                                         try {
                                             xmlServiceType = JSON.stringify(result.root.device.deviceList.device.serviceList.service.serviceType);
@@ -1011,7 +1014,7 @@ function firstDevLookup(strLocation) {
                                         }
 
                                         adapter.setObject(xmlFN + '.' + xmlTypeOfDevice + '.' + xmlfriendlyName + '.' +  xmlService, {
-                                            type: 'enum',
+                                            type: 'channel',
                                             common: {
                                                 name: xmlService
 
@@ -1059,7 +1062,7 @@ function firstDevLookup(strLocation) {
          }
     });
     return true;
-};
+}
 //END Reading the xml device description file of each upnp device the first time
 
 //START Read the SCPD File  of a upnp device service
@@ -1084,7 +1087,6 @@ function readSCPD(SCPDlocation, service){
                             adapter.log.warn("Error: " + err);
                         } else {
                             adapter.log.debug("Creating objects for " + SCPDlocation);
-                            var i;
 
                             if (!result || !result.scpd) {
                                 adapter.log.warn('Error by parsing of ' + SCPDlocation);
@@ -1096,7 +1098,7 @@ function readSCPD(SCPDlocation, service){
 
                         } //END if
                     } //END function
-                ) //END parseString
+                ); //END parseString
             } catch (error) {
                 adapter.log.error('Cannot parse answer from ' + SCPDlocation + ': ' + error);
             }
@@ -1194,13 +1196,13 @@ function createActionList(result, service){
                 actionListPath = "actionList"; //Diese Variable soll später beim aufruf der Funktion übergeben werden
 
                 xmlName = result.scpd.actionList.action[i2].name;
-
+                xmlName = xmlName.replace(/\"/g, "");
 
                 adapter.setObject(service + '.' + xmlName, {
-                    type: 'enum',
+                    type: 'channel',
                     common: {
                         name: xmlName,
-
+                        role: 'action'
                     },
                     native: {}
                 });
@@ -1217,18 +1219,24 @@ function createActionList(result, service){
                     },
                     native: {}
                 });
-                createArgumentList(result, service, xmlName);
+                try {
+                    createArgumentList(result, service, xmlName, i2);
+                } catch(err){
+                    adapter.log.debug("There is no argument for " + xmlName);
+                }
             }
         }
         else if (result.scpd.actionList.action) {
             adapter.log.debug("Found only one action");
 
             xmlName = JSON.stringify(result.scpd.actionList.action.name);
+            xmlName = xmlName.replace(/\"/g, "");
 
             adapter.setObject(service + '.' + xmlName, {
-                type: 'enum',
+                type: 'channel',
                 common: {
                     name: xmlName,
+                    role: 'action'
                 },
                 native: {}
             });
@@ -1245,8 +1253,11 @@ function createActionList(result, service){
                 },
                 native: {}
             });
-
-            createArgumentList(result, service, xmlName);
+            try {
+                createArgumentList(result, service, xmlName, "");
+            } catch(err){
+                adapter.log.debug("There is no argument for " + xmlName);
+            }
         }
 
     }//END if
@@ -1258,42 +1269,60 @@ function createActionList(result, service){
 
 
 //START Creating argumentList
-function createArgumentList(result, service, action){
+function createArgumentList(result, service, actionName, action_number){
     var i_argument = 0;
     var xmlName;
     var xmlDirection;
     var xmlrelStateVar;
 
+    adapter.log.debug("Reading argumentList for " + actionName);
 
-
-    if (result.scpd.actionList.action && result.scpd.actionList.action.argumentList) {
-        i_argument = result.scpd.actionList.action.argumentList.argument.length;
+    if (result.scpd.actionList && result.scpd.actionList.action) {
+        i_argument = result.scpd.actionList.action[action_number].argumentList.argument.length;
 
         //Counting arguments's
-        adapter.log.debug("Number of argument's: " + result.scpd.actionList.action.argumentList.length);
+        adapter.log.debug("Number of argument's: " + result.scpd.actionList.action[action_number].argumentList.argument.length);
 
         if (i_argument) {
             adapter.log.debug("Found more than one argument");
             var i2;
             for (i2 = i_argument - 1; i2 >= 0; i2--) {
 
+                try {
+                xmlName = result.scpd.actionList.action[action_number].argumentList.argument[i2].name;
+                    xmlName = xmlName.replace(/\"/g, "");
+                } catch(err){
+                    adapter.log.debug("Can not read argument Name of " + actionName);
+                    xmlName = "Unknown";
+                }
 
-                xmlName = result.scpd.actionList.action.argumentList.argument[i2].name;
-                xmlDirection = result.scpd.actionList.action.argumentList.argument[i2].direction;
-                xmlrelStateVar = result.scpd.actionList.action.argumentList.argument[i2].relatedStateVariable;
+                try {
+                    xmlDirection = result.scpd.actionList.action[action_number].argumentList.argument[i2].direction;
+                } catch(err) {
+                    adapter.log.debug("Can not read direction of " + actionName);
+                    xmlDirection = "";
+                }
 
-                adapter.setObject(service + '.' + action + '.' + xmlName, {
-                    type: 'enum',
+                try {
+                    xmlrelStateVar = result.scpd.actionList.action[action_number].argumentList.argument[i2].relatedStateVariable;
+                } catch(err) {
+                    adapter.log.debug("Can not read relatedStateVariable of " + actionName);
+                    xmlrelStateVar = "";
+                }
+
+                adapter.setObject(service + '.' + actionName + '.' + xmlName, {
+                    type: 'state',
                     common: {
                         name: xmlName,
-
+                        role: 'argument',
+                        type: 'mixed'
                     },
                     native: {direction: xmlDirection,
                             relatedStateVariable: xmlrelStateVar}
                 });
 
                 //Dummy State
-                adapter.setObject(service + '.' + action + '.' + xmlName + '.dummyState', {
+                adapter.setObject(service + '.' + actionName + '.' + xmlName + '.dummyState', {
                     type: 'state',
                     common: {
                         name: 'Dummy State',
@@ -1306,22 +1335,25 @@ function createArgumentList(result, service, action){
                 });
             }
         }
-        else if (result.scpd.actionList.action.argumentList.argument) {
+        else if (result.scpd.actionList.action[action_number].argumentList.argument) {
             adapter.log.debug("Found only one argument");
 
-            xmlName = JSON.stringify(result.scpd.actionList.action.argumentList.argument.name);
+            xmlName = JSON.stringify(result.scpd.actionList.action[action_number].argumentList.argument.name);
+            xmlName = xmlName.replace(/\"/g, "");
 
-            adapter.setObject(service + '.' + action + '.' + xmlName, {
-                type: 'enum',
+            adapter.setObject(service + '.' + actionName + '.' + xmlName, {
+                type: 'state',
                 common: {
                     name: xmlName,
+                    role: 'argument',
+                    type: 'mixed'
                 },
                 native: {direction: xmlDirection,
                     relatedStateVariable: xmlrelStateVar}
             });
 
             //Dummy State
-            adapter.setObject(service + '.' + action + '.' + xmlName + '.dummyState', {
+            adapter.setObject(service + '.' + actionName + '.' + xmlName + '.dummyState', {
                 type: 'state',
                 common: {
                     name: 'Dummy State',
