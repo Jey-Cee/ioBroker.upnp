@@ -1,6 +1,6 @@
 {
   "name": "iobroker.upnp",
-  "version": "0.1.0",
+  "version": "0.2.1",
   "description": "upnp is looking for upnp devices on Local Network",
   "author": {
     "name": "Jey Cee",
@@ -25,9 +25,10 @@
     "url": "https://github.com/Jey-Cee/ioBroker.upnp"
   },
   "dependencies": {
-	"node-ssdp": "^2.7.0",
-	"xml2js": "^0.4.15",
-	"request": "^2.67.0"
+	"node-ssdp": "2.7.0",
+    "node-upnp-subscription": "1.0.5",
+	"xml2js": "0.4.15",
+	"request": "2.67.0"
 },
   "devDependencies": {
     "grunt": "^0.4.5",
