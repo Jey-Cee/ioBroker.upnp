@@ -1,44 +1,22 @@
 ![Logo](admin/upnp-discovery.png)
-# ioBroker.upnp-discovery
+# ioBroker.upnp
 =================
 
-This adapter is a upnp-discovery for creation of own adapter.
+IMPORTANT: This Adapter is pre-Alpha state. 
 
-##Steps 
-- download and unpack this packet from github ```https://github.com/ioBroker/ioBroker.upnp-discovery/archive/master.zip```
-  or clone git repository ```git clone https://github.com/ioBroker/ioBroker.upnp-discovery.git```
+Currently only the XML data of the upnp devices to be read and generates 
+the objects for it.
+This release is for demonstration of the object structure.
 
-- download required npm packets. Write in ioBroker.upnp-discovery directory:
-
-  ```npm install```
-  
-- set name of this upnp-discovery. Call
-  
-  ```grunt rename --name=mynewname --email=email@mail.com --author="Author Name"```
-  
-  *mynewname* must be **lower** case and with no spaces.
- 
-- rename directory from *ioBroker.upnp-discovery* (can be *ioBroker.upnp-discovery-master*) to *iobroker.mynewname*
-
-- to use this upnp-discovery you should copy it into *.../iobroker/node_modules* directory
-
-- create your adapter:
-
-  [Adapter-Development-Documentation](https://github.com/ioBroker/ioBroker/wiki/Adapter-Development-Documentation),
-  
-  [Installation, setup and first steps with an ioBroker Development Environment](https://github.com/ioBroker/ioBroker/wiki/Installation,-setup-and-first-steps-with-an-ioBroker-Development-Environment)
-
-- change version: edit package.json and then call ```grunt p``` in your adapter directory.
-  
-- share it with community
 
 ## Changelog
 
-#### 0.4.0
-* (bluefox) fix errors with grunt
 
 #### 0.2.0
-* (bluefox) initial release
+* (jey-cee) getting all xml data from upnp devices
+
+#### 0.1.0
+* (jey-cee) initial release
 
 ## License
 The MIT License (MIT)
