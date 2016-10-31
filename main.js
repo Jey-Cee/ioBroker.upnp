@@ -48,6 +48,7 @@ var adapter = utils.adapter('upnp');
 // is called when adapter shuts down - callback has to be called under any circumstances!
 adapter.on('unload', function (callback) {
     try {
+        stop_server()
         adapter.log.info('cleaned everything up...');
         callback();
     } catch (e) {
@@ -103,7 +104,7 @@ function sendBroadcastToAll() {
         if (foundIPs.indexOf(answer) === -1) {
             foundIPs.push(answer);
 
-            // process immediately and do not wait 5 seconds
+
             if(answer != answer.match(/.*dummy.xml/g)) {
                 setTimeout(function () {
                     firstDevLookup(answer);
@@ -166,11 +167,13 @@ function firstDevLookup(strLocation) {
                             //Looking for the port
                             var strPort = strLocation.replace(/\bhttp:\/\/.*\d:/ig, "");
                             strPort = strPort.replace(/\/.*/ig, "");
+                            if(strPort.match(/http:/ig) == true){strPort = '';}
 
 
                             //Looking for the IP of a device
                             strLocation = strLocation.replace(/http:\/\//g, "");
-                            strLocation = strLocation.replace(/:\d*\/.*/ig, "");
+                            try{strLocation = strLocation.replace(/:\d*\/.*/ig, "");}
+                            catch(err) { strLocation = strLocation.replace(/\/\w.*/ig, "");}
 
                             //Looking for UDN of a device
                             try {
@@ -218,6 +221,7 @@ function firstDevLookup(strLocation) {
                                 xmlFriendlyName = path.friendlyName;
                                 xmlFN = xmlFriendlyName.toString().replace(/\./g, "_");
                                 xmlFN = xmlFN.replace(/"/g, "");
+                                try{xmlFN = xmlFN.replace(/\s/g, "_");} catch(err){};
                             } catch (err) {
                                 adapter.log.debug("Can not read friendlyName of " + strLocation);
                                 xmlFriendlyName = "Unknown";
@@ -297,8 +301,13 @@ function firstDevLookup(strLocation) {
                             adapter.setObject(xmlFN + '.' + xmlTypeOfDevice + '.Alive', {
                                 type: 'state',
                                 common: {
-                                    name: 'Alive'
-                                }
+                                    name: 'Alive',
+                                    type: 'boolean',
+                                    role: 'indicator.state',
+                                    read: true,
+                                    write: true
+                                },
+                                native: {}
                             });
                             //END - Creating the root object of a device
 
@@ -427,8 +436,13 @@ function firstDevLookup(strLocation) {
                                         adapter.setObject(xmlFN + '.' + xmlTypeOfDevice + '.Alive', {
                                             type: 'state',
                                             common: {
-                                                name: 'Alive'
-                                            }
+                                                name: 'Alive',
+                                                type: 'boolean',
+                                                role: 'indicator.state',
+                                                read: true,
+                                                write: true
+                                            },
+                                            native: {}
                                         });
                                     } //END for
                                 }//END if
@@ -593,7 +607,7 @@ function createServiceStateTable(result, service){
     var strStep;
 
         path = result.scpd.serviceStateTable[0];
-         i_stateVariable = path.stateVariable.length;
+         try{i_stateVariable = path.stateVariable.length;} catch(err){};
 
         //Counting stateVariable's
         adapter.log.debug("Number of stateVariables: " + i_stateVariable);
@@ -656,7 +670,8 @@ function createServiceStateTable(result, service){
             common: {
                 name: xmlName.toString(),
                 type: dataType,
-                role: "indicator.state"
+                role: "indicator.state",
+                read: true
             },
             native: {
                     sendEvents: stateVariableAttr,
@@ -706,7 +721,8 @@ function createActionList(result, service){
             common: {
                 name: xmlName.toString(),
                 role: 'action',
-                type: 'mixed'
+                type: 'mixed',
+                read: true
             },
             native: {}
         });
@@ -773,7 +789,8 @@ function createArgumentList(result, service, actionName, action_number, path){
             common: {
                 name: xmlName.toString,
                 role: 'argument',
-                type: 'mixed'
+                type: 'mixed',
+                read: true
             },
             native: {direction: xmlDirection.toString(),
                 relatedStateVariable: xmlrelStateVar.toString()}
@@ -784,27 +801,109 @@ function createArgumentList(result, service, actionName, action_number, path){
 } //END function
 //END Creating argumentList
 
-//START Server
+//START Server for Alive and ByeBye messages
+var own_uuid = 'uuid:f40c2981-7329-40b7-8b04-27f187aecfb5';
 var Server = require('node-ssdp').Server
     , server = new Server({
-    ssdpIp: '239.255.255.0',
-    ssdpPort: 2500,
+    ssdpIp: '239.255.255.250',
 });
+//helper for start adding new devices
+var devices;
+var is_running;
 
 server.addUSN('upnp:rootdevice');
 server.addUSN('urn:schemas-upnp-org:device:IoTManagementandControlDevice:1');
 
 server.on('advertise-alive', function (headers) {
-    // Expire old devices from your cache.
-    // Register advertising device somewhere (as designated in http headers heads)
-    //log('Device Alive ' + JSON.stringify(headers));
+    var usn = JSON.stringify(headers['USN']);
+    usn = usn.toString();
+    usn = usn.replace(/uuid:/ig, "");
+    usn = usn.replace(/::.*/ig, '"');
+    var nt = JSON.stringify(headers['NT']);
+    var location = JSON.stringify(headers['LOCATION']);
+    if(usn.match(/.*f40c2981-7329-40b7-8b04-27f187aecfb5.*/)) {
+    } else {
+        adapter.getDevices(function (err, devices) {
+            var device;
+            var device_id;
+            var device_uuid;
+            var device_usn;
+            var found_uuid;
+            for(device in devices){
+                device_uuid = JSON.stringify(devices[device]['native']['uuid']);
+                device_usn = JSON.stringify(devices[device]['native']['deviceType']);
+                //Set object Alive for the Service true
+                if(device_uuid == usn && device_usn == nt){
+                    var max_age = JSON.stringify(headers['CACHE-CONTROL']);
+                    try{max_age = max_age.replace(/max-age.=./ig, '');} catch(err){};
+                    try{max_age = max_age.replace(/max-age=/ig, '');} catch(err){};
+                    device_id = JSON.stringify(devices[device]['_id']);
+                    device_id = device_id.replace(/\"/ig, '');
+                    adapter.setState(device_id + '.Alive', {val: true, ack: true, expire: max_age});
+                }
+                if(device_uuid == usn){
+                    found_uuid = 'found';
+                }
+            }
+            if(found_uuid != 'found') {
+                adapter.log.debug('Found new device');
+                if (is_running) {
+                } else {
+                    is_running = true;
+                    catch_new_devices(location);
+                    }
+
+                }
+
+        });
+    }
 });
 
 server.on('advertise-bye', function (headers) {
     // Remove specified device from cache.
-    //log('Device Dead ' + JSON.stringify(headers));
+    var usn = JSON.stringify(headers['USN']);
+    usn = usn.toString();
+    usn = usn.replace(/uuid:/g, '');
+    try{usn.replace(/::.*/ig, '')} catch(err) {};
+    var nt = JSON.stringify(headers['NT']);
+    var location = JSON.stringify(headers['LOCATION']);
+    if(usn.match(/.*f40c2981-7329-40b7-8b04-27f187aecfb5.*/)) {
+    } else {
+        //adapter.log.debug('Device Dead' + usn + '; ' + nt + '; ' + location);
+        adapter.getDevices(function (err, devices) {
+            var device;
+            var device_id;
+            var device_uuid;
+            var device_usn;
+            for(device in devices){
+                device_uuid = JSON.stringify(devices[device]['native']['uuid']);
+                device_usn = JSON.stringify(devices[device]['native']['deviceType']);
+                //Set object Alive for the Service true
+                if(device_uuid == usn && device_usn == nt){
+                    device_id = JSON.stringify(devices[device]['_id']);
+                    device_id = device_id.replace(/\"/ig, '');
+                    adapter.setState(device_id + '.Alive', {val: false, ack: true});
+                }
+            }
+        });
+    }
 });
 
 // start the server
-server.start();
-//END Server
+setTimeout(function(){
+    server.start();
+}, 15000);
+
+
+function catch_new_devices(device){
+    device = device.replace(/\"/ig, '')
+    firstDevLookup(device);
+    is_running = false;
+
+}
+
+function stop_server() {
+    server.stop() // advertise shutting down and stop listening
+};
+//END Server for Alive and ByeBye messages
+
