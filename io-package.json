@@ -1,7 +1,7 @@
 {
     "common": {
         "name":                     "upnp",
-        "version": "0.2.1",
+        "version": "0.2.2",
         "title":                    "upnp adapter",
         "desc":                     {
  			"en": "ioBroker upnp Adapter",

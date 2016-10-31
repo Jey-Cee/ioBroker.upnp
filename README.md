@@ -10,6 +10,11 @@ This release is for demonstration of the object structure.
 
 
 ## Changelog
+### 0.2.2
+* (jey-cee) added listener for Alive/Dead messages from devices
+* (jey-cee) if new devices joining the network they will added automatically
+* (jey-cee) replace whitespace chars in device id's on creation, because objects and sub-object with whitespace chars wasn't usable
+
 
 ### 0.2.1
 * (jey-cee) bug fixing: corrected creation of native's and smaller Bugs
