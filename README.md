@@ -2,7 +2,7 @@
 # ioBroker.upnp
 =================
 
-IMPORTANT: This Adapter is pre-Alpha state. 
+IMPORTANT: This Adapter is Alpha state. 
 
 Currently only the XML data of the upnp devices to be read and generates 
 the objects for it.
