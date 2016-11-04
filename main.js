@@ -48,7 +48,9 @@ var adapter = utils.adapter('upnp');
 // is called when adapter shuts down - callback has to be called under any circumstances!
 adapter.on('unload', function (callback) {
     try {
-        stop_server()
+
+        stop_server();
+        clearAsStates();
         adapter.log.info('cleaned everything up...');
         callback();
     } catch (e) {
@@ -65,11 +67,25 @@ adapter.on('objectChange', function (id, obj) {
 // is called if a subscribed state changes
 adapter.on('stateChange', function (id, state) {
     // Warning, state can be null if it was deleted
-    adapter.log.info('stateChange ' + id + ' ' + JSON.stringify(state));
+    //adapter.log.info('stateChange ' + id + ' ' + JSON.stringify(state));
+    var lastChange;
+    adapter.getState(id, function(err, obj){
+        try{lastChange = obj['lc'];} catch(err){}
+        var d = new Date();
+        var timeNow = d.getTime();
+        var diff = timeNow - lastChange;
+        if(diff <= 10) {
+            //adapter.log.debug('Letzte Änderung: ' + lastChange + ' ' + timeNow + ' ' + diff);
+            subscribe_event(id, state)
+        }
+    });
 
+    if(id.match(/\.Alive/ig)){
+        //subscribe_event(id, state)
+    }
     // you can use the ack flag to detect if it is status (true) or command (false)
     if (state && !state.ack) {
-        adapter.log.info('ack is not set!');
+        //adapter.log.info('ack is not set!');
     }
 });
 
@@ -78,18 +94,23 @@ adapter.on('stateChange', function (id, state) {
 // start here!
 adapter.on('ready', main);
 
+
+
 var foundIPs = []; // Array for the caught broadcast answers
 var parseString = require('xml2js').parseString;
 var request     = require('request');
+var arrAlive = [];
 
 function main() {
-
+    adapter.subscribeStates('*');
     sendBroadcastToAll();
 
     //Filtering the Device description file addresses, timeout is necessary to wait for all answers
     setTimeout(function () {
         adapter.log.debug("Found " + foundIPs.length + " devices");
     }, 5000);
+
+    createAliveArr();
 }
 
 function sendBroadcastToAll() {
@@ -108,12 +129,13 @@ function sendBroadcastToAll() {
             if(answer != answer.match(/.*dummy.xml/g)) {
                 setTimeout(function () {
                     firstDevLookup(answer);
-                }, 500);
+                }, 1000);
             };
         }
     });
 
     client.search('ssdp:all');
+
 }
 
 //START Reading the xml device description file of each upnp device the first time
@@ -420,6 +442,8 @@ function firstDevLookup(strLocation) {
                                                 name: xmlfriendlyName
                                             },
                                             native: {
+                                                ip: strLocation,
+                                                port: strPort,
                                                 uuid: xmlUDN,
                                                 deviceType: xmlDeviceType.toString(),
                                                 manufacturer: xmlManufacturer.toString(),
@@ -540,6 +564,18 @@ function creatServiceList(result, xmlFN, xmlTypeOfDevice, object, strLocation, s
             }
         });
 
+        adapter.setObject(object + '.' + xmlService + '.sid', {
+            type: 'state',
+            common: {
+                name: 'Subscription ID',
+                type: 'string',
+                role: 'indicator.state',
+                read: true,
+                write: true
+            },
+            native: {}
+        });
+
         var SCPDlocation = "http://" + strLocation + ":" + strPort + xmlSCPDURL;
         var service = xmlFN + '.' + xmlTypeOfDevice + '.' +  xmlService;
         readSCPD(SCPDlocation, service);
@@ -606,56 +642,73 @@ function createServiceStateTable(result, service){
     var strMaximum;
     var strStep;
 
-        path = result.scpd.serviceStateTable[0];
-         try{i_stateVariable = path.stateVariable.length;} catch(err){};
+        try{path = result.scpd.serviceStateTable[0];} catch (err) {path = result.scpd.serviceStateTable};
+         try{i_stateVariable = path.stateVariable.length;} catch(err){i_stateVariable = 1;};
 
         //Counting stateVariable's
         adapter.log.debug("Number of stateVariables: " + i_stateVariable);
+            try {
+                for (i2 = i_stateVariable - 1; i2 >= 0; i2--) {
+                    stateVariableAttr = undefined;
+                    strAllowedValues = "";
+                    strMinimum = undefined;
+                    strMaximum = undefined;
+                    strStep = undefined;
 
-            for (i2 = i_stateVariable - 1; i2 >= 0; i2--) {
-                stateVariableAttr = undefined;
-                strAllowedValues ="";
-                strMinimum = undefined;
-                strMaximum = undefined;
-                strStep = undefined;
-
-                stateVariableAttr = path.stateVariable[i2]['$'].sendEvents;
-                xmlName =path.stateVariable[i2].name;
-                xmlDataType = path.stateVariable[i2].dataType;
+                    stateVariableAttr = path.stateVariable[i2]['$'].sendEvents;
+                    xmlName = path.stateVariable[i2].name;
+                    xmlDataType = path.stateVariable[i2].dataType;
 
 
                     try {
 
-                        for( xmlAllowedValue in path.stateVariable[i2].allowedValueList[0].allowedValue) {
+                        for (xmlAllowedValue in path.stateVariable[i2].allowedValueList[0].allowedValue) {
                             var numberOfValue = xmlAllowedValue;
                             xmlAllowedValue = path.stateVariable[i2].allowedValueList[0].allowedValue[numberOfValue];
                             strAllowedValues = strAllowedValues + xmlAllowedValue + ' ';
                         }
-                    } catch (err) {}
+                    } catch (err) {
+                    }
 
                     try {
-                            xmlAllowedValue = path.stateVariable[i2].defaultValue;
-                            strDefaultValue = xmlAllowedValue.replace(/\"/g, "");
-                    } catch (err) {}
+                        xmlAllowedValue = path.stateVariable[i2].defaultValue;
+                        strDefaultValue = xmlAllowedValue.replace(/\"/g, "");
+                    } catch (err) {
+                    }
 
                     try {
-                            strMinimum = path.stateVariable[i2].allowedValueRange[0].minimum;
-                            try{strMinimum = strMinimum.toString();} catch (err) {};
-                    } catch (err) {}
+                        strMinimum = path.stateVariable[i2].allowedValueRange[0].minimum;
+                        try {
+                            strMinimum = strMinimum.toString();
+                        } catch (err) {
+                        }
+                        ;
+                    } catch (err) {
+                    }
 
                     try {
-                            strMaximum = path.stateVariable[i2].allowedValueRange[0].maximum;
-                            try{strMaximum = strMaximum.toString();} catch (err) {};
-                    } catch (err) {}
+                        strMaximum = path.stateVariable[i2].allowedValueRange[0].maximum;
+                        try {
+                            strMaximum = strMaximum.toString();
+                        } catch (err) {
+                        }
+                        ;
+                    } catch (err) {
+                    }
                     try {
-                            strStep = path.stateVariable[i2].allowedValueRange[0].step;
-                            try{strStep = strStep.toString();} catch (err) {};
-                    } catch (err) {}
+                        strStep = path.stateVariable[i2].allowedValueRange[0].step;
+                        try {
+                            strStep = strStep.toString();
+                        } catch (err) {
+                        }
+                        ;
+                    } catch (err) {
+                    }
 
 
-
-                createService();
-            }//END for
+                    createService();
+                }//END for
+            } catch(err){}
 
     function createService() {
         //Handles DataType ui2 as Number
@@ -699,19 +752,20 @@ function createActionList(result, service){
     var xmlName;
 
     path = result.scpd.actionList[0];
-    try{i_action = path.action.length;} catch (err) {};
+    try{i_action = path.action.length;} catch (err) {i_action = 1;};
 
     //Counting action's
     adapter.log.debug("Number of actions: " + i_action);
 
     if (i_action) {
+        try {
+            for (i2 = i_action - 1; i2 >= 0; i2--) {
 
-        for (i2 = i_action - 1; i2 >= 0; i2--) {
+                xmlName = path.action[i2].name;
 
-            xmlName = path.action[i2].name;
-
-            createAction();
-        }
+                createAction();
+            }
+        }catch (err) {}
 
     }//END if
 
@@ -722,7 +776,8 @@ function createActionList(result, service){
                 name: xmlName.toString(),
                 role: 'action',
                 type: 'mixed',
-                read: true
+                read: true,
+                write: true
             },
             native: {}
         });
@@ -750,7 +805,7 @@ function createArgumentList(result, service, actionName, action_number, path){
 
     adapter.log.debug("Reading argumentList for " + actionName);
 
-    i_argument = path.action[action_number].argumentList[0].argument.length;
+    try{i_argument = path.action[action_number].argumentList[0].argument.length;} catch (err){i_argument = 1;};
 
     //Counting arguments's
     adapter.log.debug("Number of argument's: " + i_argument);
@@ -790,27 +845,31 @@ function createArgumentList(result, service, actionName, action_number, path){
                 name: xmlName.toString,
                 role: 'argument',
                 type: 'mixed',
-                read: true
+                read: true,
+                write: true
             },
             native: {direction: xmlDirection.toString(),
                 relatedStateVariable: xmlrelStateVar.toString()}
-        });
+        }); //END adapter.setObject()
     }
     //END Add argumentList for action
 
 } //END function
 //END Creating argumentList
 
+
 //START Server for Alive and ByeBye messages
-var own_uuid = 'uuid:f40c2981-7329-40b7-8b04-27f187aecfb5';
+var own_uuid = 'uuid:f40c2981-7329-40b7-8b04-27f187aecfb5'; //this string is for filter message's from upnp Adapter
 var Server = require('node-ssdp').Server
     , server = new Server({
     ssdpIp: '239.255.255.250',
 });
-//helper for start adding new devices
+//helper variables for start adding new devices
 var devices;
 var is_running;
 
+//Identification of upnp Adapter/ioBroker as upnp Service and it's capabilities
+//at this time there is no implementation of upnp service capabilities, it is only necessary for the server to run
 server.addUSN('upnp:rootdevice');
 server.addUSN('urn:schemas-upnp-org:device:IoTManagementandControlDevice:1');
 
@@ -837,30 +896,30 @@ server.on('advertise-alive', function (headers) {
                     var max_age = JSON.stringify(headers['CACHE-CONTROL']);
                     try{max_age = max_age.replace(/max-age.=./ig, '');} catch(err){};
                     try{max_age = max_age.replace(/max-age=/ig, '');} catch(err){};
+                    try{max_age = max_age.replace(/\"/ig, '');} catch(err){};
                     device_id = JSON.stringify(devices[device]['_id']);
                     device_id = device_id.replace(/\"/ig, '');
                     adapter.setState(device_id + '.Alive', {val: true, ack: true, expire: max_age});
-                }
+                } //END if
                 if(device_uuid == usn){
                     found_uuid = 'found';
-                }
-            }
+                } //END if
+            } //END for
             if(found_uuid != 'found') {
                 adapter.log.debug('Found new device');
                 if (is_running) {
                 } else {
                     is_running = true;
                     catch_new_devices(location);
-                    }
+                    } //END if
+                } //END if
 
-                }
-
-        });
-    }
+        }); //END adapter.getDevices()
+    } //END if
 });
+// /END server.on('advertise-alive')
 
 server.on('advertise-bye', function (headers) {
-    // Remove specified device from cache.
     var usn = JSON.stringify(headers['USN']);
     usn = usn.toString();
     usn = usn.replace(/uuid:/g, '');
@@ -878,32 +937,289 @@ server.on('advertise-bye', function (headers) {
             for(device in devices){
                 device_uuid = JSON.stringify(devices[device]['native']['uuid']);
                 device_usn = JSON.stringify(devices[device]['native']['deviceType']);
-                //Set object Alive for the Service true
-                if(device_uuid == usn && device_usn == nt){
+                //Set object Alive for the Service false
+                if(device_uuid == usn){
                     device_id = JSON.stringify(devices[device]['_id']);
                     device_id = device_id.replace(/\"/ig, '');
                     adapter.setState(device_id + '.Alive', {val: false, ack: true});
-                }
-            }
-        });
-    }
+                } //END if
+            }  //END for
+        }); //END adapter.getDevices()
+    } //END if
 });
+//END server.on('advertise-bye')
 
-// start the server
+
+//start the server
 setTimeout(function(){
     server.start();
 }, 15000);
 
-
+//is called if device isn't already in objects present
 function catch_new_devices(device){
     device = device.replace(/\"/ig, '')
     firstDevLookup(device);
     is_running = false;
-
 }
 
 function stop_server() {
-    server.stop() // advertise shutting down and stop listening
-};
+    server.stop(); // advertise shutting down and stop listening
+}
 //END Server for Alive and ByeBye messages
 
+
+//START Event listener
+var service;
+var device_ip;
+var device_port;
+var infoSub;
+var answer;
+
+//Subscribe to every service that is alive. Triggered by change alive from false/null to true.
+function subscribe_event(id, state){
+    service = id.replace(/\.Alive/ig, '');
+    var alive = JSON.stringify(state['val']);
+    if(alive == 'true') {
+        adapter.getObject(service, function (err, obj) {
+            device_ip = JSON.stringify(obj.native.ip);
+            device_ip = device_ip.replace(/\"/ig, '');
+            device_port = JSON.stringify(obj.native.port);
+            device_port = device_port.replace(/\"/ig, '');
+            //adapter.log.info('device ip: ' + device_ip + ' ' + device_port + ' '+ JSON.stringify(obj));
+
+            adapter.getChannelsOf(obj.common.name, function (err, _channel) {
+                    for (var x = _channel.length - 1; x >= 0; x--) {
+
+                            var event_url;
+                            try {
+                                event_url = JSON.stringify(_channel[x].native.eventSubURL);
+                            } catch (err) {
+                            }
+                            try {
+                                event_url = event_url.replace(/\"/ig, '');
+                            } catch (err) {
+                            }
+                            try {
+                                    infoSub = new Subscription(device_ip, device_port, event_url, 1000);
+                                    listener(event_url, _channel[x]);
+                            } catch (err){}
+
+
+                    } //END for
+            }); //END adapter.getChannelsOf()
+        }); //END adapter.getObjects()
+    } //END if
+} //END function subscribe_event
+
+
+//START message handler for subscriptions
+function listener(event_url, _channel) {
+
+    if (infoSub) {
+        infoSub.on('subscribed', function (sid) {
+            //adapter.log.info('SID: ' + JSON.stringify(sid) + ' ' + event_url + ' ' + _channel['_id']);
+            var variabaleTimeout = +5;
+            setTimeout(function(){adapter.setState(_channel._id + '.sid', {val: sid.sid, ack: true})}, variabaleTimeout);
+            setTimeout(function(){variabaleTimeout = 0}, 100)
+        });
+
+        infoSub.on('message', function (obj) {
+            adapter.log.info(' Message: ' + JSON.stringify(obj));
+            events2objects(obj, _channel);
+        });
+        infoSub.on('error', function (obj) {
+            adapter.log.info('Subscription error: ' + JSON.stringify(obj));
+        });
+
+        infoSub.on('resubscribed', function (sid) {
+            //adapter.log.info('SID: ' + JSON.stringify(sid) + ' ' + event_url + ' ' + _channel['_id']);
+            var variabaleTimeout = +5;
+            setTimeout(function(){adapter.setState(_channel._id + '.sid', {val: sid.sid, ack: true})}, variabaleTimeout);
+            setTimeout(function(){variabaleTimeout = 0}, 100)
+        });
+    } //END if
+} //END function listener()
+
+
+var arrSID = [];
+var state;
+//Get all .sid Objects for the services and build an array, that is used as index to find them faster
+function events2objects(data, _channel){
+    var lookup;
+    var arrLength = arrSID.length;
+    if(arrLength == 0){
+        //Fill array arrSID if it is empty
+        adapter.getStatesOf('upnp.' + adapter.instance, function(err, _states){
+            var statesLength = _states.length;
+
+                for(var x = statesLength -1; x >= 0; x--){
+                    if(JSON.stringify(_states[x]['_id']).match(/\.sid/g) == null){
+                        //if the match deliver null nothing is to do
+                    }else{
+                        //if the match deliver an id of an object add them to the array
+                        arrSID.push(_states[x]['_id']);
+                    }
+                } //END for
+        }); //END adapter.getStatesOf()
+        //When the array is filled start the search
+        lookup = new lookup_service(data, arrLength);
+    }else{
+        //Start Search
+        lookup = new lookup_service(data, arrLength);
+    } //END if
+
+    var sid = JSON.stringify(data['sid']);
+} //END function events2object
+
+
+function lookup_service(data, arrLength){
+    var counter = 0;
+    counter = arrLength;
+    for(var y = arrLength -1; y >= 0; y--){
+        //Get a state from the list in arrSID
+        adapter.getState(arrSID[y], function(err, obj){
+            counter = counter - 1;
+            var sNS = new setNewState(obj, counter, data)
+        });
+    }//END for
+}
+
+function setNewState(obj, count, data){
+    try{var varsid = obj['val'];} catch(err){} //Extract the value of the state
+    //adapter.log.info(JSON.stringify('varsid: ' + varsid));
+
+    if(varsid != null){
+        //adapter.log.debug('Obejkt danach: ' + JSON.stringify(test));
+        var helper = JSON.stringify(data['sid']); //Get the sid from actual message
+        var helper2 = helper.replace(/\"/ig, "");
+        var searchString = new RegExp(helper2, 'ig'); //Create a regular expression with the sid of actual message
+        var found = varsid.match(searchString);
+        //adapter.log.debug('Match: ' + found + ' ' + varsid + ' ' + searchString);
+
+        if(found != null) {
+            var serviceID = arrSID[count];
+            serviceID = serviceID.replace(/\.sid/ig, '');
+            //adapter.log.info('Gefunden: ' + JSON.stringify(data));
+
+            //Select sub element with States
+            var newStates;
+                newStates = data['body']['e:propertyset']['e:property'];
+
+            try{
+                newStates = newStates['LastChange']['_'];
+            } catch (err) {}
+
+            if(newStates == undefined){
+                newStates = data['body']['e:propertyset']['e:property']['LastChange'];
+            }
+
+            //try{adapter.log.info('newStates: ' + newStates);} catch(err){};
+
+            var newStates2 = JSON.stringify(newStates);
+
+            if(newStates2.match(/<Event.*/ig) != null){
+                parseString(newStates, function(err, result) {
+                    var states = new convertEventObject(result['Event']);
+
+                    //split everey array meber into state name and value, then push it to iobroker state
+                    var state_name;
+                    var val;
+                    var channel;
+                    for(var x = states.length -1; x >= 0; x--){
+                        //adapter.log.debug('Array Element Nr. ' + x + ': ' + states[x].toString());
+                        var strState = states[x].toString();
+                        state_name = strState.match(/\"\w*/i);
+                        state_name = state_name.toString();
+                        state_name = state_name.replace(/\"/i, "");
+
+                        //looking for the value
+                        val = strState.match(/val\":\"(\w*(:\w*|,\s\w*)*)/ig);
+                        if(val != null) {
+                            val = val.toString();
+                            val = val.replace(/val\":\"/ig, "");
+                        }
+
+                        //looking for the value of channel
+                        channel = strState.match(/channel\":\"(\w*(:\w*|,\s\w*)*)/ig);
+                        if(channel != null) {
+                            channel = channel.toString();
+                            channel = channel.replace(/channel\":\"/ig, "");
+                            adapter.setState(serviceID + '.' + 'A_ARG_TYPE_Channel', {val: channel, ack: true})
+                        }
+                        adapter.setState(serviceID + '.' + state_name, {val: val, ack: true})
+                    }
+                }) //END parseString()
+            } //END if Event
+
+
+
+            try {
+                for (var x = newStates.langth - 1; x >= 0; x--) {
+                    adapter.log.info('state:' + JSON.stringify(newStates[x]));
+                }
+            } catch(err){}
+
+        } //END if
+    } //END if
+}
+//Not used now
+function convertEvent(data){
+        var change = data.replace(/<\\.*>/ig, '{"');
+        change = data.replace(/</ig, '{"');
+        change = change.replace(/\s/ig, '""');
+        change = change.replace(/=/ig, ':');
+        change = change.replace(/\\/ig, '');
+        change = change.replace(/>/ig, '}');
+}
+
+//convert the event JSON into an array
+function convertEventObject(result) {
+    var regex = new RegExp(/\"\w*\":\[{\"\$\":{(\"\w*\":\"(\w*:\w*:\w*|(\w*,\s\w*)*|\w*)\"(,\"\w*\":\"\w*\")*)}/ig);
+    var strResult = JSON.stringify(result);
+    var matches = strResult.match(regex);
+    return matches;
+}
+
+
+//END Event listener
+var upnp_instance = 'upnp.' + adapter.instance;
+//START clear Alive and sid's states when Adapter stops
+function clearAsStates(){
+    //Clear sid
+    var arrLength = arrSID.length;
+    if(arrLength != 0){
+        for(var x = arrLength; x >= 0; x--){
+            try{adapter.setState(arrSID[x], {val: '', ack: true})
+            } catch(err) {}
+        } //END for
+    } //END if
+
+    //Clear Alive
+    arrLength = arrAlive.length;
+    if(arrLength != 0){
+        for(var y = arrLength; y >= 0; y--){
+            try{adapter.setState(arrAlive[y], {val: 'false', ack: true})
+            } catch(err) {}
+        } //END for
+    } //END if
+
+    adapter.log.info('Alive and sid states cleared');
+}
+//END clear Alive and sid's
+
+function createAliveArr(){
+    adapter.getStatesOf('upnp.' + adapter.instance, function(err, _states){
+        var arrLength = arrAlive.length;
+        var statesLength = _states.length;
+        if(arrLength == 0) {
+
+            for (var x = statesLength - 1; x >= 0; x--) {
+                if (JSON.stringify(_states[x]['_id']).match(/\.Alive/g) == null) {
+                    //if the match deliver null nothing is to do
+                } else {
+                    arrAlive.push(_states[x]['_id']);
+                }
+            } //END for
+        } //END if
+    }); //END adapter.getStatesOf()
+}

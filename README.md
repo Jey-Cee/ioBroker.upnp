@@ -8,6 +8,11 @@ Currently only the XML data of the upnp devices to be read and generates
 the objects for it.
 This release is for demonstration of the object structure.
 
+## Changelog
+### 0.2.3
+* (jey-cee) fixed Dead message handler
+* (jey-cee) added Subscription to service (only event message handling)
+* (jey-cee) when adapter stops Alive state is set to false and sid(subscription id) is cleared
 
 ## Changelog
 ### 0.2.2
