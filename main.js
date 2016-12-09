@@ -8,7 +8,7 @@
  *  {
  *      "common": {
  *          "name":         "upnp",                  					// name has to be set and has to be equal to adapters folder name and main file name excluding extension
- *          "version":      "0.2.2",                    						// use "Semantic Versioning"! see http://semver.org/
+ *          "version":      "0.3.1",                    						// use "Semantic Versioning"! see http://semver.org/
  *          "title":        "upnp Adapter",  							// Adapter title shown in User Interfaces
  *          "authors":  [                               						// Array of authord
  *              "Jey Cee <jey-cee@live.com>"
