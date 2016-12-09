@@ -97,8 +97,8 @@ Stellt einen upnp Dienst bereit, jedoch wird keine upnp-Dienstbeschreibung gelie
 
 
 ## Changelog
-### 0.3.1
-* (jey-cee) updated version number from 0.2.4 to 0.3.1
+### 0.3.2
+* (jey-cee) updated version number from 0.2.4 to 0.3.2
 
 ### 0.3.0
 * (jey-cee) added native Argument_No for object type argument
