@@ -61,7 +61,7 @@ adapter.on('unload', function (callback) {
 // is called if a subscribed object changes
 adapter.on('objectChange', function (id, obj) {
     // Warning, obj can be null if it was deleted
-    adapter.log.info('objectChange ' + id + ' ' + JSON.stringify(obj));
+    adapter.log.debug('objectChange ' + id + ' ' + JSON.stringify(obj));
 });
 
 // is called if a subscribed state changes
@@ -191,7 +191,7 @@ function firstDevLookup(strLocation) {
                             var i;
 
                             if (!result || !result.root || !result.root.device) {
-                                adapter.log.warn('Error by parsing of ' + strLocation + ': Cannot find deviceType');
+                                adapter.log.debug('Error by parsing of ' + strLocation + ': Cannot find deviceType');
                                 return;
                             }
 
@@ -634,7 +634,7 @@ function firstDevLookup(strLocation) {
                         }//END else
                         })
             } catch (error) {
-                adapter.log.error('Cannot parse answer from ' + strLocation + ': ' + error);
+                adapter.log.debug('Cannot parse answer from ' + strLocation + ': ' + error);
             }
          }
     });
@@ -772,7 +772,7 @@ function readSCPD(SCPDlocation, service){
                             //adapter.log.debug("Creating objects for " + SCPDlocation);
 
                             if (!result || !result.scpd) {
-                                adapter.log.warn('Error by parsing of ' + SCPDlocation);
+                                adapter.log.debug('Error by parsing of ' + SCPDlocation);
                                 return;
                             } //END if
 
@@ -783,7 +783,7 @@ function readSCPD(SCPDlocation, service){
                     } //END function
                 ); //END parseString
             } catch (error) {
-                adapter.log.error('Cannot parse answer from ' + SCPDlocation + ': ' + error);
+                adapter.log.debug('Cannot parse answer from ' + SCPDlocation + ': ' + error);
             }
         }
         })
@@ -1071,7 +1071,7 @@ server.on('advertise-alive', function (headers) {
                 } //END if
             } //END for
             if(found_uuid != 'found') {
-                adapter.log.info('Found new device: ' + location);
+                adapter.log.debug('Found new device: ' + location);
                 if (is_running) {
                 } else {
                     is_running = true;
@@ -1198,7 +1198,8 @@ function listener(event_url, _channel) {
             setTimeout(function(){variabaleTimeout = 0}, 100)
         });
         infoSub.on('error', function (obj) {
-            adapter.log.info('Subscription error: ' + JSON.stringify(obj));
+            adapter.log.debug('Subscription error: ' + JSON.stringify(obj));
+            subscription.unsubscribe();
         });
 
         infoSub.on('resubscribed', function (sid) {
@@ -1518,7 +1519,7 @@ function createAliveArr(){
 var test = [];
 
 function sendCommand(obj){
-        adapter.log.info('Send Command');
+        adapter.log.debug('Send Command');
     var id = obj._id;
     var actionName = obj.common.name;
     var service = id.replace('.' + actionName, '');
@@ -1662,38 +1663,69 @@ function createMessage(sType, aName, _ip, _port, cURL, body, action_id){
     //Send Action message to Device/Service
 
     request(options, function(err, res, body) {
-        console.log(body);
-        adapter.log.info('response');
-        if(res['statusCode'] != '200'){
-            adapter.log.warn('Unexpected answer from upnp service: ' + JSON.stringify(res) + '\n Sent message: ' + JSON.stringify(options));
-        }else{
-            //look for data in the response
-            var pattData = new RegExp(/<\w*>[^<]*/g);
-            var foundData = body.match(pattData);
-            console.log(foundData.length);
-            if(foundData != null){
-               console.log(foundData);
-                adapter.log.debug('action id: ' + action_id);
-                for(var i = foundData.length -1; i >=0; i--){
-                    var foundArgName = foundData[i].match(/<\w*>/);
-                    foundArgName = JSON.stringify(foundArgName);
-                    foundArgName = foundArgName.replace(/\"/g, '');
-                    foundArgName = foundArgName.replace(/\[/g, '');
-                    foundArgName = foundArgName.replace(/\]/g, '');
-                    var argValue = foundData[i].replace(foundArgName, '');
-                    foundArgName = foundArgName.replace('<', '');
-                    foundArgName = foundArgName.replace('>', '');
-                    var argID = action_id + '.' + foundArgName;
-                    adapter.log.debug(argValue);
-                    adapter.setState(argID, {val: argValue, ack: true})
-                }
-            }
-        }
-
+        adapter.log.debug('response');
         if(err != null){
             adapter.log.warn('Error sending SOAP request: ' + err);
-        }
+        } else {
+            if (res['statusCode'] != '200') {
+                adapter.log.warn('Unexpected answer from upnp service: ' + JSON.stringify(res) + '\n Sent message: ' + JSON.stringify(options));
+            } else {
+                //look for data in the response
+                //var pattData = new RegExp(/<\w*>[^<]*/g); first version don't work properly with wm player 12
+                //var pattData = new RegExp(/<\w*(\s*\w*[:="-]*)*>*[^<]*/g); first attempt
+                var pattData = new RegExp(/<[^\/]\w*\s*[^<]*/g); //second attempt
+                //die Zusätlichen infos beim Argument namen müssen entfernt werden damit er genutzt werden kann
+                var foundData = body.match(pattData);
+                if (foundData != null) {
+
+                    for (var i = foundData.length - 1; i >= 0; i--) {
+                        var foundArgName = foundData[i].match(/<\w*>/);
+                        if (foundArgName != null) {
+                            var strFoundArgName = JSON.stringify(foundArgName);
+                            strFoundArgName = strFoundArgName.replace(/\"/g, '');
+                            strFoundArgName = strFoundArgName.replace(/\[/g, '');
+                            strFoundArgName = strFoundArgName.replace(/\]/g, '');
+                            var argValue = foundData[i].replace(strFoundArgName, '');
+                            strFoundArgName = strFoundArgName.replace('<', '');
+                            strFoundArgName = strFoundArgName.replace('>', '');
+                        } else {
+                            foundArgName = foundData[i].match(/<\w*\s/);
+                            var strFoundArgName = JSON.stringify(foundArgName);
+                            strFoundArgName = strFoundArgName.replace(/\"/g, '');
+                            strFoundArgName = strFoundArgName.replace(/\[/g, '');
+                            strFoundArgName = strFoundArgName.replace(/\]/g, '');
+                            strFoundArgName = strFoundArgName.replace('<', '');
+                            strFoundArgName = strFoundArgName.replace(/\s$/, '');
+                            var argValue = foundData[i].replace(/<.*>/, '');
+                        }
+
+                        if (strFoundArgName != 'null') {
+                            var argID = action_id + '.' + strFoundArgName;
+                            adapter.setState(argID, {val: argValue, ack: true});
+                            //look for relatedStateVariable and setState
+                            var syncArg = new syncArgument(action_id, argID, argValue);
+                        }
+
+                    }
+
+                } else {
+                    adapter.log.debug('Nothing found: ' + JSON.stringify(body));
+                }
+
+            }//END if
+        }//END if error
+
     });
 
 }
 //END creat Action message
+
+//Sync Argument with relatedStateVariable
+function syncArgument(action_id, argID, argValue){
+    adapter.getObject(argID, function(err, obj){
+        var relatedStateVariable = obj.native.relatedStateVariable;
+        var serviceID = action_id.replace(/\.\w*$/, '');
+        var relStateVarID = serviceID + '.' + relatedStateVariable;
+        adapter.setState(relStateVarID, {val: argValue, ack: true})
+    })
+}

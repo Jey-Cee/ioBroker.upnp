@@ -97,6 +97,12 @@ Stellt einen upnp Dienst bereit, jedoch wird keine upnp-Dienstbeschreibung gelie
 
 
 ## Changelog
+### 0.3.3
+* (jey-cee) try to fix bug that cause to crash the adapter when sending actions
+* (jey-cee) added unsubscribe on subscription error
+* (jey-cee) added sync between Arguments and the related State Variable
+* (jey-cee) fixed bug when sending an action and there comes no answer
+
 ### 0.3.2
 * (jey-cee) updated version number from 0.2.4 to 0.3.2
 
