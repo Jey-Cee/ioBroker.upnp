@@ -17,7 +17,7 @@
         "type":                     "hardware"
     },
     "native": {
-        "test1": true,
+        "rootXMLurl":"",
         "test2": 42
     },
     "objects": [

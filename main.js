@@ -126,10 +126,13 @@ var arrAlive = [];
 function main() {
     adapter.subscribeStates('*');
     sendBroadcastToAll();
+    //adapter.config.rootXMLurl = '';
+    //adapter.log.info(adapter.config.rootXMLurl);
 
     //Filtering the Device description file addresses, timeout is necessary to wait for all answers
     setTimeout(function () {
         adapter.log.debug("Found " + foundIPs.length + " devices");
+        firstDevLookup(adapter.config.rootXMLurl);
     }, 5000);
 
     createAliveArr();
@@ -784,6 +787,21 @@ function readSCPD(SCPDlocation, service){
                 ); //END parseString
             } catch (error) {
                 adapter.log.debug('Cannot parse answer from ' + SCPDlocation + ': ' + error);
+            }
+        } else {
+            var patt = new RegExp("FRITZ!Box");
+            var res = patt.test(service);
+            if(res == true){
+                adapter.log.info('res ist True ' + SCPDlocation);
+                try{
+                    var strHelper = SCPDlocation.replace(/\b\//, "/tr064/");
+                    adapter.log.info('String Helper: ' + strHelper);
+                    request(strHelper, function (error, response, body) {
+                        if (!error && response.statusCode == 200) {
+                            readSCPD(strHelper, service);
+                        }
+                    })
+                }catch (err){}
             }
         }
         })
