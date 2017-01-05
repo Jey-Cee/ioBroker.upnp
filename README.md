@@ -97,6 +97,10 @@ Stellt einen upnp Dienst bereit, jedoch wird keine upnp-Dienstbeschreibung gelie
 
 
 ## Changelog
+
+### 0.3.4
+* (jey-cee) added Travis-CI Tests
+
 ### 0.3.3
 * (jey-cee) try to fix bug that cause to crash the adapter when sending actions
 * (jey-cee) added unsubscribe on subscription error
