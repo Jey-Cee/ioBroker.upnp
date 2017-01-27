@@ -7,24 +7,15 @@
 <script type="text/javascript" src="../../lib/js/jquery-ui-1.10.3.full.min.js"></script>
 
 
-<!-- optional: use jqGrid
-<link rel="stylesheet" type="text/css" href="../../lib/css/jqGrid/ui.jqgrid-4.5.4.css"/>
-<script type="text/javascript" src="../../lib/js/jqGrid/jquery.jqGrid-4.5.4.min.js"></script>
-<script type="text/javascript" src="../../lib/js/jqGrid/i18n/grid.locale-all.js"></script>
--->
-
-<!-- optional: use multiselect
-<link rel="stylesheet" type="text/css" href="../../lib/css/jquery.multiselect-1.13.css"/>
-<script type="text/javascript" src="../../lib/js/jquery.multiselect-1.13.min.js"></script>
--->
-
-<!-- these two file always have to be included -->
 <link rel="stylesheet" type="text/css" href="../../css/adapter.css"/>
 <script type="text/javascript" src="../../js/translate.js"></script>
 <script type="text/javascript" src="../../js/adapter-settings.js"></script>
 
-
-<!-- you have to define 2 functions in the global scope: -->
+<style>
+    .changing {
+        box-shadow: 1px 1px 2px 0px red;
+    }
+</style>
 <script type="text/javascript">
 
     // Dictionary (systemDictionary is global variable from adapter-settings.js)
@@ -40,52 +31,67 @@
 
     // the function loadSettings has to exist ...
     function load(settings, onChange) {
-        // example: select elements with id=key and class=value and insert value
         for (var key in settings) {
-            // example: select elements with id=key and class=value and insert value
-            if ($('#' + key + '.value').attr('type') == 'checkbox') {
-                $('#' + key + '.value').prop('checked', settings[key]).change(function () {
+            if (!settings.hasOwnProperty(key)) continue;
+            var $value = $('#' + key + '.value');
+            if ($value.attr('type') === 'checkbox') {
+                $value.prop('checked', settings[key]).change(function () {
 					onChange();
 				});
             } else {
-                $('#' + key + '.value').val(settings[key]).change(function () {
+                $value.val(settings[key]).change(function () {
 					onChange();
 				}).keyup(function () {
 					$(this).trigger('change');
 				});
             }
         }
-        // Signal to admin, that no changes yet
+        socket.emit('getState', adapter + '.' + instance + '.inclusionOn', function (err, state) {
+            $('#inclusionOn').prop('checked', state && state.val);
+        });
+
+        socket.emit('subscribe', adapter + '.' + instance + '.inclusionOn');
+
+        socket.on('stateChange', function (id, state) {
+            if (id === adapter + '.' + instance + '.inclusionOn') {
+                if (state && state.ack) {
+                    $('#inclusionOn')
+                        .removeClass('changing')
+                        .prop('checked', state.val);
+                }
+            }
+        });
+
         onChange(false);
+        $('#inclusionOn').change(function () {
+            socket.emit('setState', adapter + '.' + instance + '.inclusionOn', $('#inclusionOn').addClass('changing').prop('checked'));
+        });
     }
 
-    // ... and the function save has to exist.
-    // you have to make sure the callback is called with the settings object as first param!
     function save(callback) {
-        // example: select elements with class=value and build settings object
         var obj = {};
         $('.value').each(function () {
             var $this = $(this);
-            obj[$this.attr('id')] = $this.val();
+            if ($this.attr('type') === 'checkbox') {
+                obj[$this.attr('id')] = $this.prop('checked');
+            } else {
+                obj[$this.attr('id')] = $this.val();
+            }
         });
         callback(obj);
     }
 </script>
 
-<!-- you have to put your config page in a div with id adapter-container -->
 <div id="adapter-container">
 
     <table><tr>
         <td><img src="upnp-discovery.png"/></td>
         <td><h3 class="translate">upnp-discovery adapter settings</h3></td>
     </tr></table>
-    <p>
-        <span class="translate">rootXMLurl</span> <input class="value" id="rootXMLurl"/><br>
-        <span class="translate">test2</span> <input class="value" id="test2"/><br>
-    </p>
-
-    <p class="translate">on save adapter restarts with new config immediately</p>
-
+    <table>
+        <tr><td><label class="translate" for="rootXMLurl">rootXMLurl</label></td><td><input class="value" id="rootXMLurl" /></td></tr>
+        <tr><td><label class="translate" for="inclusionOn">Inclusion mode:</label></td><td><input id="inclusionOn" type="checkbox"/></td></tr>
+    </table>
 </div>
 
 </html>

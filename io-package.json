@@ -20,7 +20,19 @@
         "rootXMLurl":"",
         "test2": 42
     },
-    "objects": [
-
-    ]
+  "instanceObjects": [
+    {
+      "_id":  "inclusionOn",
+      "type": "state",
+      "common": {
+        "role":  "state",
+        "name":  "Inclusion mode activated",
+        "desc":  "If inclusion mode on or off",
+        "type":  "boolean",
+        "read":  true,
+        "write": true
+      },
+      "native": {}
+    }
+  ]
 }
