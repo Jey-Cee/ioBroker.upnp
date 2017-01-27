@@ -1,0 +1,4 @@
+//Example: Getting periodically actual IP adress
+schedule("*/10 * * * * *",  function () { 
+setState( "upnp.0.FRITZ!Box_7272.WANDevice.WANCommonInterfaceConfig.GetAddonInfos",'send');
+});
