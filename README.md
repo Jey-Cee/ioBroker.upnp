@@ -1,4 +1,4 @@
-![Image](https://travis-ci.org/Jey-Cee/ioBroker.upnp.svg?branch=master)
+![Logo](http://img.shields.io/npm/v/iobroker.upnp.svg) ![Image](https://travis-ci.org/Jey-Cee/ioBroker.upnp.svg?branch=master)
 
 ![Logo](admin/upnp-discovery.png)
 # ioBroker.upnp
