@@ -1,3 +1,5 @@
+![Image](https://travis-ci.org/Jey-Cee/ioBroker.upnp.svg?branch=master)
+
 ![Logo](admin/upnp-discovery.png)
 # ioBroker.upnp
 =================
