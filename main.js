@@ -8,7 +8,7 @@
  *  {
  *      "common": {
  *          "name":         "upnp",                  					// name has to be set and has to be equal to adapters folder name and main file name excluding extension
- *          "version":      "0.3.1",                    						// use "Semantic Versioning"! see http://semver.org/
+ *          "version":      "0.3.6",                    						// use "Semantic Versioning"! see http://semver.org/
  *          "title":        "upnp Adapter",  							// Adapter title shown in User Interfaces
  *          "authors":  [                               						// Array of authord
  *              "Jey Cee <jey-cee@live.com>"
@@ -67,23 +67,6 @@ adapter.on('objectChange', function (id, obj) {
 // is called if a subscribed state changes
 adapter.on('stateChange', function (id, state) {
     // Warning, state can be null if it was deleted
-
-    if (id === adapter.namespace + '.enableAutoDiscover') {
-        if (!state || state.ack) return;
-
-        adapter.log.debug('enableAutoDiscover ' + state.val);
-
-        adapter.setState('enableAutoDiscover', state.val, true);
-        return;
-    }
-    if (id === adapter.namespace + '.enableAutoSubscription') {
-        if (!state || state.ack) return;
-
-        adapter.log.debug('enableAutoSubscription ' + state.val);
-
-        adapter.setState('enableAutoSubscription', state.val, true);
-        return;
-    }
 
     //Subscribe to an service when its state Alive is true
     var lastChange;
