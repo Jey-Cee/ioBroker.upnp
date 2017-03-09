@@ -12,11 +12,6 @@
 <script type="text/javascript" src="../../js/translate.js"></script>
 <script type="text/javascript" src="../../js/adapter-settings.js"></script>
 
-<style>
-       .changing {
-           box-shadow: 1px 1px 2px 0px red;
-        }
-</style>
 
 <script type="text/javascript">
 
@@ -40,55 +35,26 @@
     // the function loadSettings has to exist ...
     function load(settings, onChange) {
         // example: select elements with id=key and class=value and insert value
-        for (var key in settings) {
-            if (!settings.hasOwnProperty(key)) continue;
-            var $value = $('#' + key + '.value');
-            if ($value.attr('type') === 'checkbox') {
-                $value.prop('checked', settings[key]).change(function () {
+       if (!settings) return;
+        $('.value').each(function () {
+            var key = $(this).attr('id');
+            var $key = $('#' + key + '.value');
+            if ($key.attr('type') === 'checkbox') {
+                $key.prop('checked', settings[key]).change(function() {
                     onChange();
                 });
             } else {
-                $value.val(settings[key]).change(function () {
+                $key.val(settings[key]).change(function() {
                     onChange();
-                }).keyup(function () {
-                    $(this).trigger('change');
+                }).keyup(function() {
+                    onChange();
                 });
             }
-        }
-
-        socket.emit('getState', adapter + '.' + instance + '.enableAutoDiscover', function (err, state) {
-            $('#enableAutoDiscover').prop('checked', state && state.val);
-        });
-        socket.emit('getState', adapter + '.' + instance + '.enableAutoSubscription', function (err, state) {
-            $('#enableAutoSubscription').prop('checked', state && state.val);
         });
 
-        socket.emit('subscribe', adapter + '.' + instance + '.enableAutoDiscover');
-        socket.emit('subscribe', adapter + '.' + instance + '.enableAutoSubscription');
 
-        socket.on('stateChange', function (id, state) {
-            if (id === adapter + '.' + instance + '.enableAutoDiscover') {
-                if (state && state.ack) {
-                    $('#enableAutoDiscover')
-                            .removeClass('changing')
-                            .prop('checked', state.val);
-                }
-            }
-            if (id === adapter + '.' + instance + '.enableAutoSubscription') {
-                if (state && state.ack) {
-                    $('#enableAutoSubscription')
-                            .removeClass('changing')
-                            .prop('checked', state.val);
-                }
-            }
-        });
         onChange(false);
-        $('#enableAutoDiscover').change(function () {
-            socket.emit('setState', adapter + '.' + instance + '.enableAutoDiscover', $('#enableAutoDiscover').addClass('changing').prop('checked'));
-        });
-        $('#enableAutoSubscription').change(function () {
-            socket.emit('setState', adapter + '.' + instance + '.enableAutoSubscription', $('#enableAutoSubscription').addClass('changing').prop('checked'));
-        });
+
     }
 
     function save(callback) {
