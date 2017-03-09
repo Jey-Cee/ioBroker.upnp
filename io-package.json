@@ -1,7 +1,7 @@
 {
     "common": {
         "name":                     "upnp",
-        "version":                  "0.3.5",
+        "version":                  "0.3.6",
         "title":                    "upnp adapter",
         "desc":                     {
  			"en": "ioBroker upnp Adapter",
@@ -17,32 +17,10 @@
         "type":                     "hardware"
     },
     "native": {
+	"enableAutoDiscover": "",
+	"enableAutoSubscription": ""
     },
     "instanceObjects": [
-      {
-        "_id":  "enableAutoDiscover",
-        "type": "state",
-        "common": {
-          "role":  "state",
-          "name":  "Auto discovery activated",
-          "desc":  "If Auto discovery on or off",
-          "type":  "boolean",
-          "read":  true,
-          "write": true
-        },
-        "native": {}
-      },{
-        "_id":  "enableAutoSubscription",
-        "type": "state",
-        "common": {
-          "role":  "state",
-          "name":  "Auto subscription activated",
-          "desc":  "If Auto subscription on or off",
-          "type":  "boolean",
-          "read":  true,
-          "write": true
-        },
-        "native": {}
-      }
+      {}
   ]
 }
