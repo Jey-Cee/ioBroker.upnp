@@ -102,6 +102,9 @@ Stellt einen upnp Dienst bereit, jedoch wird keine upnp-Dienstbeschreibung gelie
 
 ## Changelog
 
+### 0.3.6
+* (jey-cee) fixed problem with settings
+
 ### 0.3.5
 * (jey-cee) added option in settings for disable auto discover
 
