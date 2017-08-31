@@ -136,7 +136,7 @@ The adapter broadcasts and evaluates the responses at the first start. The answe
 
 Time delayed a service is started which waits for messages from devices/services which log on or off. Newly detected devices/services are automatically added to the existing ones. A second service logs in to each available device and subscribes to status messages, so that ioBroker is automatically notified of any changes (sent) to the device/service.
 
-<a name="Object_structure>**Object structure**</a>
+<a name="Object_structure">**Object structure**</a>
 
 Each device or software that reacts to the broadcast is created as a separate object. Below this object you will find all available services with their capabilities. The possibilities are divided into 3 categories (role/role): indicator. state, action and argument.
 
