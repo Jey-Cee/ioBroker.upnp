@@ -1,20 +1,24 @@
 {
     "common": {
         "name":                     "upnp",
-        "version":                  "0.3.6",
-        "title":                    "upnp adapter",
+        "version":                  "0.3.7",
+        "title":                    "UPnP Adapter",
         "desc":                     {
- 			"en": "ioBroker upnp Adapter",
-			"de": "ioBroker upnp Adapter",
-			"ru": "ioBroker upnp драйвер как образец"
-	},
+ 			"en": "ioBroker UPnP Adapter",
+			"de": "ioBroker UPnP Adapter",
+			"ru": "ioBroker UPnP драйвер как образец"
+	        },
         "platform":                 "Javascript/Node.js",
+        "license":                  "MIT",
         "mode":                     "daemon",
         "icon":                     "upnp-discovery.png",
+        "keywords":                 ["upnp"],
 		"extIcon":          "https://raw.githubusercontent.com/Jey-Cee/ioBroker.upnp/master/admin/upnp-discovery.png",
 		"readme":           "https://github.com/Jey-Cee/ioBroker.upnp/blob/master/README.md",
 		"loglevel":         "info",
-        "type":                     "hardware"
+        "type":                     "hardware",
+        "messagebox":               true,
+        "subscribe":                "messagebox"
     },
     "native": {
 	"enableAutoDiscover": "",
