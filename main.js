@@ -1,6 +1,6 @@
 /**
  *
- * template adapter
+ *
  *
  *
  *  file io-package.json comments:
@@ -8,7 +8,7 @@
  *  {
  *      "common": {
  *          "name":         "upnp",                  					// name has to be set and has to be equal to adapters folder name and main file name excluding extension
- *          "version":      "0.3.6",                    						// use "Semantic Versioning"! see http://semver.org/
+ *          "version":      "0.3.7",                    						// use "Semantic Versioning"! see http://semver.org/
  *          "title":        "upnp Adapter",  							// Adapter title shown in User Interfaces
  *          "authors":  [                               						// Array of authord
  *              "Jey Cee <jey-cee@live.com>"
@@ -38,6 +38,9 @@ var utils = require(__dirname + '/lib/utils'); // Get common adapter utils
 var Client = require('node-ssdp').Client;
 var client = new Client();
 var Subscription = require('node-upnp-subscription');
+
+//include Upnp Player
+var player = require(__dirname + '/lib/player');
 
 
 // you have to call the adapter function and pass a options object
@@ -85,6 +88,19 @@ adapter.on('stateChange', function (id, state) {
                 subscribe_event(id, state)
             }
         });
+        adapter.getState(id, function(err, state){
+            //var value = state.val
+                //player.setAvailablePlayers(id, value);
+        })
+    }
+
+    //Upnp Player controls
+    var patt2 = new RegExp(/\.Player\./g);
+    var testPlayer = patt2.test(id);
+    if (testPlayer === true){
+        try {
+            player.main(id, state);
+        }catch(err){}
     }
 
     //Control a device when a related object changes its value
@@ -115,7 +131,24 @@ adapter.on('stateChange', function (id, state) {
 
 // is called when databases are connected and adapter received configuration.
 // start here!
-adapter.on('ready', main);
+adapter.on('ready', function(){
+    player.getAdapter(adapter);
+    player.createPlayerStates();
+    main();
+});
+
+// Some message was sent to adapter instance over message box. Used by email, pushover, text2speech, ...
+adapter.on('message', function (obj) {
+    if (typeof obj == 'object' && obj.message) {
+        if (obj.command == 'send') {
+            // e.g. send email or pushover or whatever
+            adapter.log.info('send command');
+
+            // Send response in callback if required
+            if (obj.callback) adapter.sendTo(obj.from, obj.command, 'Message received', obj.callback);
+        }
+    }
+});
 
 var foundIPs = []; // Array for the caught broadcast answers
 var parseString = require('xml2js').parseString;
@@ -141,6 +174,7 @@ function main() {
     }, 5000);
 
     createAliveArr();
+
 }
 
 function sendBroadcast() {
@@ -652,6 +686,9 @@ function firstDevLookup(strLocation) {
                 adapter.log.debug('Cannot parse answer from ' + strLocation + ': ' + error);
             }
          }
+         setTimeout(function(){
+             player.createPlayerStates();
+         }, 5000)
     });
     return true;
 }
@@ -1085,7 +1122,7 @@ server.on('advertise-alive', function (headers) {
                     found_uuid = 'found';
                 } //END if
             } //END for
-            if(found_uuid != 'found' && adapter.config.autoDiscover === true) {
+            if(found_uuid != 'found' && adapter.config.enableAutoDiscover === true) {
                 adapter.log.debug('Found new device: ' + location);
                 if (is_running) {
                 } else {

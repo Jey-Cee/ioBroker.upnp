@@ -200,8 +200,12 @@ The objects listed here can be found in the upnp standard and/or the device/dine
 
 <a name="Changelog">## Changelog</a>
 
+### 0.3.7
+* (jey-cee) fixed auto discover
+
+
 ### 0.3.6
-* (jey-cee) fixed problem with settings
+*(jey-cee) fixed problem with settings
 
 ### 0.3.5
 * (jey-cee) added option in settings for disable auto discover
