@@ -1,30 +1,38 @@
 {
     "common": {
-        "name":                     "upnp",
-        "version":                  "0.3.7",
-        "title":                    "UPnP Adapter",
-        "desc":                     {
- 			"en": "ioBroker UPnP Adapter",
-			"de": "ioBroker UPnP Adapter",
-			"ru": "ioBroker UPnP драйвер как образец"
-	        },
-        "platform":                 "Javascript/Node.js",
-        "license":                  "MIT",
-        "mode":                     "daemon",
-        "icon":                     "upnp-discovery.png",
-        "keywords":                 ["upnp"],
-		"extIcon":          "https://raw.githubusercontent.com/Jey-Cee/ioBroker.upnp/master/admin/upnp-discovery.png",
-		"readme":           "https://github.com/Jey-Cee/ioBroker.upnp/blob/master/README.md",
-		"loglevel":         "info",
-        "type":                     "hardware",
-        "messagebox":               true,
-        "subscribe":                "messagebox"
+        "name": "upnp",
+        "version": "0.3.7",
+        "title": "UPnP Adapter",
+        "desc": {
+            "en": "ioBroker UPnP Adapter",
+            "de": "ioBroker UPnP Adapter",
+            "ru": "ioBroker UPnP драйвер как образец"
+        },
+        "platform": "Javascript/Node.js",
+        "license": "MIT",
+        "mode": "daemon",
+        "icon": "upnp-discovery.png",
+        "keywords": [
+            "upnp"
+        ],
+        "extIcon": "https://raw.githubusercontent.com/Jey-Cee/ioBroker.upnp/master/admin/upnp-discovery.png",
+        "readme": "https://github.com/Jey-Cee/ioBroker.upnp/blob/master/README.md",
+        "loglevel": "info",
+        "type": "network",
+        "messagebox": true,
+        "subscribe": "messagebox",
+        "authors": [
+            {
+                "name": "Jey Cee",
+                "email": "jey-cee@live.com"
+            }
+        ]
     },
     "native": {
-	"enableAutoDiscover": "",
-	"enableAutoSubscription": ""
+        "enableAutoDiscover": "",
+        "enableAutoSubscription": ""
     },
     "instanceObjects": [
-      {}
-  ]
+        {}
+    ]
 }
