@@ -28,9 +28,7 @@
     "node-ssdp": "2.7.0",
     "node-upnp-subscription": "1.0.6",
     "xml2js": "0.4.15",
-    "request": "2.67.0",
-    "mocha": "^2.3.4",
-    "chai": "^3.4.1"
+    "request": "2.67.0"
   },
   "devDependencies": {
     "grunt": "^1.0.1",
