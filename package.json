@@ -28,9 +28,7 @@
     "node-ssdp": "2.7.0",
     "node-upnp-subscription": "1.0.6",
     "xml2js": "0.4.15",
-    "request": "2.67.0",
-    "mocha": "^2.3.4",
-    "chai": "^3.4.1"
+    "request": "2.67.0"
   },
   "devDependencies": {
     "grunt": "^1.0.1",
@@ -38,7 +36,7 @@
     "grunt-contrib-compress": "^1.4.3",
     "grunt-contrib-copy": "^1.0.0",
     "grunt-contrib-jshint": "^1.1.0",
-    "mocha": "^3.5.3",
+    "mocha": "^4.1.0",
     "chai": "^4.1.2"
   },
   "bugs": {
@@ -47,6 +45,6 @@
   "readmeFilename": "README.md",
   "main": "main.js",
   "scripts": {
-    "test": "node node_modules/mocha/bin/mocha"
+    "test": "node node_modules/mocha/bin/mocha --exit"
   }
 }
