@@ -200,9 +200,13 @@ The objects listed here can be found in the upnp standard and/or the device/dine
 
 <a name="Changelog">## Changelog</a>
 
+### 0.3.8
+* (jey-cee) changes for object name's
+* (jey-cee) fix for empty USN
+* (jey-cee) added simple media player controls
+
 ### 0.3.7
 * (jey-cee) fixed auto discover
-
 
 ### 0.3.6
 *(jey-cee) fixed problem with settings

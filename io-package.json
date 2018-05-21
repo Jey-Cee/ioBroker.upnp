@@ -1,8 +1,21 @@
 {
     "common": {
         "name": "upnp",
-        "version": "0.3.7",
+        "version": "0.3.8",
         "title": "UPnP Adapter",
+        "news": {
+            "0.3.8": {
+                "en": "changes for object name's; fix for empty USN",
+                "de": "Änderungen für Objektnamen; fix für leere USN",
+                "ru": "изменения для имени объекта; исправить пустое USN",
+                "pt": "mudanças para o nome do objeto; corrigir para USN vazio",
+                "nl": "veranderingen voor objectnamen; repareren voor lege USN",
+                "fr": "changements pour le nom de l'objet; réparer pour USN vide",
+                "it": "modifiche per il nome dell'oggetto; correzione per USN vuoto",
+                "es": "cambios para el nombre del objeto; arreglar para USN vacío",
+                "pl": "zmiany dla nazwy obiektu; poprawka dla pustego USN"
+            }
+        },
         "desc": {
             "en": "ioBroker UPnP Adapter",
             "de": "ioBroker UPnP Adapter",
@@ -12,6 +25,7 @@
         "license": "MIT",
         "mode": "daemon",
         "icon": "upnp-discovery.png",
+        "materialize": true,
         "keywords": [
             "upnp"
         ],
@@ -30,7 +44,8 @@
     },
     "native": {
         "enableAutoDiscover": "",
-        "enableAutoSubscription": ""
+        "enableAutoSubscription": "",
+        "enableSimplePlayerControls": "false"
     },
     "instanceObjects": [
         {}
