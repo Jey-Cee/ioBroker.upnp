@@ -1708,8 +1708,9 @@ function syncArgument(action_id, argID, argValue){
 function nameFilter(name){
     let signs = [String.fromCharCode(46), String.fromCharCode(44), String.fromCharCode(92), String.fromCharCode(47), String.fromCharCode(91), String.fromCharCode(93),
         String.fromCharCode(123), String.fromCharCode(125), String.fromCharCode(32), String.fromCharCode(129), String.fromCharCode(154), String.fromCharCode(132),
-        String.fromCharCode(142), String.fromCharCode(148), String.fromCharCode(153), String.fromCharCode(42), String.fromCharCode(63), String.fromCharCode(34)];
-    //46=. 44=, 92=\ 47=/ 91=[ 93=] 123={ 125=} 32=Space 129=ü 154=Ü 132=ä 142=Ä 148=ö 153=Ö 42=* 63=? 34="
+        String.fromCharCode(142), String.fromCharCode(148), String.fromCharCode(153), String.fromCharCode(42), String.fromCharCode(63), String.fromCharCode(34), String.fromCharCode(39),
+        String.fromCharCode(96)];
+    //46=. 44=, 92=\ 47=/ 91=[ 93=] 123={ 125=} 32=Space 129=ü 154=Ü 132=ä 142=Ä 148=ö 153=Ö 42=* 63=? 34=" 39=' 96=`
 
     signs.forEach(function(item, index){
         let count = name.split(item).length - 1;
