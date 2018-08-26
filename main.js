@@ -636,9 +636,11 @@ function firstDevLookup(strLocation) {
                 adapter.log.debug(`Cannot parse answer from ${strLocation}: ${error}`);
             }
          }
-         setTimeout(function(){
-             player.createPlayerStates();
-         }, 5000)
+        if(adapter.config.enableSimplePlayerControls) {
+            setTimeout(function () {
+                player.createPlayerStates();
+            }, 5000)
+        }
     });
     return true;
 }
@@ -1194,7 +1196,7 @@ function listener(event_url, _channel) {
         });
         infoSub.on('error', function (obj) {
             adapter.log.debug(`Subscription error: ` + JSON.stringify(obj));
-            subscription.unsubscribe();
+            //subscription.unsubscribe();
         });
 
         infoSub.on('resubscribed', function (sid) {
@@ -1697,10 +1699,12 @@ function createMessage(sType, aName, _ip, _port, cURL, body, action_id){
 function syncArgument(action_id, argID, argValue){
     try {
         adapter.getObject(argID, function (err, obj) {
-            let relatedStateVariable = obj.native.relatedStateVariable;
-            let serviceID = action_id.replace(/\.\w*$/, '');
-            let relStateVarID = serviceID + '.' + relatedStateVariable;
-            adapter.setState(relStateVarID, {val: argValue, ack: true})
+            if(obj !== undefined){
+                let relatedStateVariable = obj.native.relatedStateVariable;
+                let serviceID = action_id.replace(/\.\w*$/, '');
+                let relStateVarID = serviceID + '.' + relatedStateVariable;
+                adapter.setState(relStateVarID, {val: argValue, ack: true})
+            }
         })
     }catch(err){}
 }

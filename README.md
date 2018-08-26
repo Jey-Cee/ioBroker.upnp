@@ -200,6 +200,9 @@ The objects listed here can be found in the upnp standard and/or the device/dine
 
 <a name="Changelog">## Changelog</a>
 
+### 0.3.9
+* fix auto discover
+
 ### 0.3.8
 * (jey-cee) changes for object name's
 * (jey-cee) fix for empty USN

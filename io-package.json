@@ -1,7 +1,7 @@
 {
     "common": {
         "name": "upnp",
-        "version": "0.3.8",
+        "version": "0.3.9",
         "title": "UPnP Adapter",
         "news": {
             "0.3.8": {
@@ -14,6 +14,17 @@
                 "it": "modifiche per il nome dell'oggetto; correzione per USN vuoto",
                 "es": "cambios para el nombre del objeto; arreglar para USN vacío",
                 "pl": "zmiany dla nazwy obiektu; poprawka dla pustego USN"
+            },
+            "0.3.9": {
+                "en": "fix auto discover\n",
+                "de": "automatische Erkennung beheben\n",
+                "ru": "исправить автоматическое обнаружение\n",
+                "pt": "corrigir auto descobrir\n",
+                "nl": "fix auto discover\n",
+                "fr": "correction automatique\n",
+                "it": "correggi il rilevamento automatico\n",
+                "es": "arreglar auto descubrir\n",
+                "pl": "napraw automatyczne wykrywanie\n"
             }
         },
         "desc": {
