@@ -1654,7 +1654,7 @@ function createMessage(sType, aName, _ip, _port, cURL, body, action_id){
                     for (let i = foundData.length - 1; i >= 0; i--) {
                         let foundArgName = foundData[i].match(/<\w*>/);
                         let strFoundArgName;
-                        let argValue
+                        let argValue;
                         if (foundArgName != null) {
                             strFoundArgName = JSON.stringify(foundArgName);
                             strFoundArgName = strFoundArgName.replace(/\"/g, '');
@@ -1699,7 +1699,7 @@ function createMessage(sType, aName, _ip, _port, cURL, body, action_id){
 function syncArgument(action_id, argID, argValue){
     try {
         adapter.getObject(argID, function (err, obj) {
-            if(obj !== undefined){
+            if(obj !== undefined && obj !== null && obj !== ''){
                 let relatedStateVariable = obj.native.relatedStateVariable;
                 let serviceID = action_id.replace(/\.\w*$/, '');
                 let relStateVarID = serviceID + '.' + relatedStateVariable;
