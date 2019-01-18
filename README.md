@@ -3,6 +3,8 @@
 ![Logo](admin/upnp-discovery.png)
 # ioBroker.upnp
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/iobroker-community-adapters/ioBroker.upnp.svg)](https://greenkeeper.io/)
+
 IMPORTANT: This Adapter is BETA state.
 
 ***Node 4.x+ needed!***
