@@ -25,17 +25,17 @@
         "url": "https://github.com/iobroker-community-adapters/ioBroker.upnp"
     },
     "dependencies": {
-        "node-ssdp": "^3.3.0",
-        "portfinder": "^1.0.13",
+        "node-ssdp": "^4.0.0",
+        "portfinder": "^1.0.20",
         "parsexmlresponse": "^0.0.5",
-        "xml2js": "0.4.15",
-        "request": "2.67.0",
+        "xml2js": "0.4.19",
+        "request": "2.88.0",
         "ip": "^1.1.5"
     },
     "devDependencies": {
-        "gulp": "^3.9.1",
-        "mocha": "^4.1.0",
-        "chai": "^4.1.2"
+        "gulp": "^4.0.0",
+        "mocha": "^5.2.0",
+        "chai": "^4.2.0"
     },
     "bugs": {
         "url": "https://github.com/iobroker-community-adapters/ioBroker.upnp/issues"
