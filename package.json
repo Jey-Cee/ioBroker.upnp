@@ -12,7 +12,7 @@
             "email": "jey-cee@live.com"
         }
     ],
-    "homepage": "https://github.com/Jey-Cee/ioBroker.upnp",
+    "homepage": "https://github.com/iobroker-community-adapters/ioBroker.upnp",
     "license": "MIT",
     "keywords": [
         "ioBroker",
@@ -22,7 +22,7 @@
     ],
     "repository": {
         "type": "git",
-        "url": "https://github.com/Jey-Cee/ioBroker.upnp"
+        "url": "https://github.com/iobroker-community-adapters/ioBroker.upnp"
     },
     "dependencies": {
         "node-ssdp": "^3.3.0",
@@ -38,7 +38,7 @@
         "chai": "^4.1.2"
     },
     "bugs": {
-        "url": "https://github.com/Jey-Cee/ioBroker.upnp/issues"
+        "url": "https://github.com/iobroker-community-adapters/ioBroker.upnp/issues"
     },
     "readmeFilename": "README.md",
     "main": "main.js",
