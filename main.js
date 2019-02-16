@@ -751,11 +751,11 @@ function readSCPD(SCPDlocation, service, cb) {
 
                         if (err) {
                             adapter.log.warn("Error: " + err);
-                            cb && cb();
+                            cb();
                         } else {
                             if (!result || !result.scpd) {
                                 adapter.log.debug('Error by parsing of ' + SCPDlocation);
-                                cb && cb();
+                                cb();
                             } else {
                                 const tasks = [];
                                 createServiceStateTable(result, service, tasks, () => {
@@ -768,10 +768,10 @@ function readSCPD(SCPDlocation, service, cb) {
                 ); //END parseString
             } catch (error) {
                 adapter.log.debug(`Cannot parse answer from ${SCPDlocation}: ${error}`);
-                cb && cb();
+                cb();
             }
         } else {
-            cb && cb();
+            cb();
         }
     });
 }
@@ -1400,11 +1400,11 @@ function setNewState(obj, count, data, cb){
 
         } //END if
         else {
-            cb && cb();
+            cb();
         }
     } //END if
     else {
-        cb && cb();
+        cb();
     }
 }
 
@@ -1417,7 +1417,7 @@ function writeState(sID, sname, val, cb) {
                     if (obj) {
                         adapter.setState(`${sID}.${sname}`, {val: val, ack: true}, cb);
                     } else {
-                        cb && cb();
+                        cb();
                     }
                 });
             });
@@ -1426,7 +1426,7 @@ function writeState(sID, sname, val, cb) {
                 if (obj) {
                     adapter.setState(`${sID}.${sname}`, {val: val, ack: true}, cb);
                 } else {
-                    cb && cb();
+                    cb();
                 }
             });
         }
@@ -1442,7 +1442,7 @@ function valChannel(strState, serviceID, cb) {
         channel = channel.replace(/channel":"/ig, '');
         adapter.setState(`${serviceID}.A_ARG_TYPE_Channel`, {val: channel, ack: true}, cb);
     } else {
-        cb && cb()
+        cb()
     }
 }
 
@@ -1801,7 +1801,7 @@ function nameFilter(name){
 }
 
 // If started as allInOne mode => return function to create instance
-if (module && module.parent) {
+if (module.parent) {
     module.exports = startAdapter;
 } else {
     // or start the instance directly
