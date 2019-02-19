@@ -117,7 +117,7 @@ function main() {
 
     //Filtering the Device description file addresses, timeout is necessary to wait for all answers
     setTimeout(() => {
-        adapter.log.debug("Found " + foundIPs.length + " devices");
+        adapter.log.debug('Found ' + foundIPs.length + ' devices');
         if (adapter.config.rootXMLurl !== '' && adapter.config.rootXMLurl !== null && adapter.config.rootXMLurl !== undefined) {
             firstDevLookup(adapter.config.rootXMLurl);
         }
@@ -156,7 +156,7 @@ function firstDevLookup(strLocation) {
 
     request(strLocation, (error, response, body) => {
         if (!error && response.statusCode === 200) {
-            adapter.log.debug("Positive answer for request of the XML file for " + strLocation);
+            adapter.log.debug('Positive answer for request of the XML file for ' + strLocation);
 
             try {
                 parseString(body, {
@@ -253,7 +253,7 @@ function firstDevLookup(strLocation) {
                                 xmlIconURL = '';
                             }
 
-                            //Looking for the freiendlyName of a device
+                            //Looking for the friendlyName of a device
                             try {
                                 xmlFN = nameFilter(path.friendlyName.toString());
                             } catch (err) {
@@ -371,13 +371,13 @@ function firstDevLookup(strLocation) {
                                             xmlDeviceType = '';
                                         }
 
-                                        //Looking for the freiendlyName of the SubDevice
+                                        //Looking for the friendlyName of the SubDevice
                                         try {
                                             xmlfriendlyName = path.deviceList[0].device[i].friendlyName;
                                             xmlFN = nameFilter(xmlfriendlyName);
                                         } catch (err) {
                                             adapter.log.debug(`Can not read friendlyName of SubDevice from ${xmlFN}`);
-                                            xmlfriendlyName = "Unknown";
+                                            xmlfriendlyName = 'Unknown';
                                         }
                                         //Looking for the manufacturer of a device
                                         try {
@@ -498,7 +498,7 @@ function firstDevLookup(strLocation) {
                                                         xmlDeviceType = '';
                                                     }
 
-                                                    //Looking for the freiendlyName of the SubDevice
+                                                    //Looking for the friendlyName of the SubDevice
                                                     try {
                                                         xmlfriendlyName = path.deviceList[0].device[i].deviceList[0].device[i2].friendlyName;
                                                         xmlFN = nameFilter(xmlfriendlyName);
@@ -747,10 +747,10 @@ function readSCPD(SCPDlocation, service, cb) {
                         explicitArray: true
                     },
                     (err, result) => {
-                        adapter.log.debug("Parsing the SCPD XML file for " + SCPDlocation);
+                        adapter.log.debug('Parsing the SCPD XML file for ' + SCPDlocation);
 
                         if (err) {
-                            adapter.log.warn("Error: " + err);
+                            adapter.log.warn('Error: ' + err);
                             cb();
                         } else {
                             if (!result || !result.scpd) {
@@ -758,10 +758,9 @@ function readSCPD(SCPDlocation, service, cb) {
                                 cb();
                             } else {
                                 const tasks = [];
-                                createServiceStateTable(result, service, tasks, () => {
-                                    createActionList(result, service, tasks);
-                                    setImmediate(processTasks, tasks, cb);
-                                });
+                                createServiceStateTable(result, service, tasks);
+                                createActionList(result, service, tasks);
+                                setImmediate(processTasks, tasks, cb);
                             }
                         } //END if
                     } //END function
@@ -778,7 +777,7 @@ function readSCPD(SCPDlocation, service, cb) {
 //END Read the SCPD File  of a upnp device service
 
 //START Creating serviceStateTable
-function createServiceStateTable(result, service, tasks, cb){
+function createServiceStateTable(result, service, tasks){
     let i_stateVariable = 0;
     let i2 = 0;
     let path;
@@ -870,6 +869,9 @@ function createServiceStateTable(result, service, tasks, cb){
             dataType = 'number';
         } else {
             dataType = xmlDataType.toString();
+        }
+        if (typeof xmlName === 'object' && xmlName[0]) {
+            xmlName = xmlName[0];
         }
         tasks.push({name: 'setObjectNotExists', id: `${service}.${xmlName}`, obj: {
             type: 'state',
@@ -1611,7 +1613,7 @@ function sendCommand(obj){
                                 } catch (err) {
                                 }
                                 try {
-                                    test2 = test2.replace(/\]/gi, '.');
+                                    test2 = test2.replace(/]/gi, '.');
                                 } catch (err) {
                                 }
 
@@ -1625,7 +1627,7 @@ function sendCommand(obj){
                                 testResult2 = testResult2.match(/val\\":(\\"[^"]*|\d*)}?/g);
                                 testResult2 = JSON.stringify(testResult2);
                                 testResult2 = testResult2.replace(/\["val(\\)*":(\\)*/, '');
-                                try{testResult2 = testResult2.replace(/\]/, '');} catch (err){}
+                                try{testResult2 = testResult2.replace(/]/, '');} catch (err){}
                                 try{testResult2 = testResult2.replace(/}"/, '');} catch (err){}
                                     try {
                                         testResult2 = testResult2.replace(/"/g, '');
@@ -1704,7 +1706,7 @@ function createMessage(sType, aName, _ip, _port, cURL, body, action_id){
                             strFoundArgName = JSON.stringify(foundArgName);
                             strFoundArgName = strFoundArgName.replace(/"/g, '');
                             strFoundArgName = strFoundArgName.replace(/\[/g, '');
-                            strFoundArgName = strFoundArgName.replace(/\]/g, '');
+                            strFoundArgName = strFoundArgName.replace(/]/g, '');
                             argValue = foundData[i].replace(strFoundArgName, '');
                             strFoundArgName = strFoundArgName.replace('<', '');
                             strFoundArgName = strFoundArgName.replace('>', '');
@@ -1713,7 +1715,7 @@ function createMessage(sType, aName, _ip, _port, cURL, body, action_id){
                             strFoundArgName = JSON.stringify(foundArgName);
                             strFoundArgName = strFoundArgName.replace(/"/g, '');
                             strFoundArgName = strFoundArgName.replace(/\[/g, '');
-                            strFoundArgName = strFoundArgName.replace(/\]/g, '');
+                            strFoundArgName = strFoundArgName.replace(/]/g, '');
                             strFoundArgName = strFoundArgName.replace('<', '');
                             strFoundArgName = strFoundArgName.replace(/\s$/, '');
                             argValue = foundData[i].replace(/<.*>/, '');
@@ -1759,7 +1761,10 @@ function syncArgument(action_id, argID, argValue, cb) {
     });
 }
 
-function nameFilter(name){
+function nameFilter(name) {
+    if (typeof name === 'object' && name[0]) {
+        name = name[0];
+    }
     let signs = [
         String.fromCharCode(46),
         String.fromCharCode(44),
@@ -1787,7 +1792,7 @@ function nameFilter(name){
     signs.forEach((item, index) => {
         let count = name.split(item).length - 1;
 
-        for(let i = 0; i < count; i++) {
+        for (let i = 0; i < count; i++) {
             name = name.replace(item, '_');
         }
 
@@ -1796,7 +1801,7 @@ function nameFilter(name){
             name = name.replace(/_$/, '');
         }
     });
-    name = name.replace(/[*\[\]\+\?]+/g, '_');
+    name = name.replace(/[*\[\]+?]+/g, '_');
     return name;
 }
 

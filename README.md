@@ -203,7 +203,7 @@ The objects listed here can be found in the upnp standard and/or the device/dine
 <a name="Changelog">## Changelog</a>
 
 ## Changelog
-### 1.0.0
+### 1.0.1
 * (bluefox) refactoring
 
 ### 0.3.9
