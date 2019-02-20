@@ -14,6 +14,10 @@ const request = require('request');
 //include Upnp Player
 const player = require('./lib/player');
 let adapter;
+player.registerTasksHandler(addTask, processTasks);
+
+const tasks = [];
+let taskRunning = false;
 
 function startAdapter(options) {
     options = options || {};
@@ -90,7 +94,7 @@ function startAdapter(options) {
 
     // Some message was sent to adapter instance over message box. Used by email, pushover, text2speech, ...
     adapter.on('message', obj => {
-        if (typeof obj == 'object' && obj.message) {
+        if (typeof obj === 'object' && obj.message) {
             if (obj.command === 'send') {
                 // e.g. send email or pushover or whatever
                 adapter.log.info('send command');
@@ -127,7 +131,7 @@ function main() {
 }
 
 function sendBroadcast() {
-    //adapter.log.debug("Send Broadcast");
+    //adapter.log.debug('Send Broadcast');
 
     //Sends a Broadcast and catch the URL with xml device description file
     client.on('response', (headers, statusCode, rinfo) => {
@@ -169,14 +173,13 @@ function firstDevLookup(strLocation) {
                         let xmlTypeOfDevice;
                         let xmlUDN;
                         let xmlManufacturer;
-                        let tasks = [];
 
-                        adapter.log.debug("Parsing the XML file for " + strLocation);
+                        adapter.log.debug('Parsing the XML file for ' + strLocation);
 
                         if (err) {
-                            adapter.log.warn("Error: " + err);
+                            adapter.log.warn('Error: ' + err);
                         } else {
-                            adapter.log.debug("Creating objects for " + strLocation);
+                            adapter.log.debug('Creating objects for ' + strLocation);
                             let i;
 
                             if (!result || !result.root || !result.root.device) {
@@ -192,7 +195,7 @@ function firstDevLookup(strLocation) {
                                 xmlTypeOfDevice = xmlDeviceType.toString().replace(/:\d/, '');
                                 xmlTypeOfDevice = xmlTypeOfDevice.replace(/.*:/, '');
                                 xmlTypeOfDevice = nameFilter(xmlTypeOfDevice);
-                                adapter.log.debug("TypeOfDevice " + xmlTypeOfDevice);
+                                adapter.log.debug('TypeOfDevice ' + xmlTypeOfDevice);
                             } catch (err) {
                                 adapter.log.debug(`Can not read deviceType of ${strLocation}`);
                                 xmlDeviceType = '';
@@ -229,7 +232,7 @@ function firstDevLookup(strLocation) {
                                 xmlManufacturer = path.manufacturer;
                                 xmlManufacturer = xmlManufacturer.toString().replace(/"/g, '');
                             } catch (err) {
-                                adapter.log.debug("Can not read manufacturer of " + strLocation);
+                                adapter.log.debug('Can not read manufacturer of ' + strLocation);
                                 xmlManufacturer = '';
                             }
 
@@ -310,39 +313,45 @@ function firstDevLookup(strLocation) {
                             //START - Creating the root object of a device
                             adapter.log.debug(`Creating root element for device: ${xmlFN}`);
 
-                            tasks.push({name: 'setObjectNotExists', id: `${xmlFN}.${xmlTypeOfDevice}`, obj: {
-                                type: 'device',
-                                common: {
-                                    name: xmlFN,
-                                    extIcon: `http://${strLocation}:${strPort}${xmlIconURL}`
-                                },
-                                native: {
-                                    ip: strLocation,
-                                    port: strPort,
-                                    uuid: xmlUDN,
-                                    deviceType: xmlDeviceType,
-                                    manufacturer: xmlManufacturer,
-                                    manufacturerURL: xmlManufacturerURL,
-                                    modelNumber: xmlModelNumber,
-                                    modelDescription: xmlModelDescription,
-                                    modelName: xmlModelName,
-                                    modelURL: xmlModelURL
+                            addTask({
+                                name: 'setObjectNotExists',
+                                id: `${xmlFN}.${xmlTypeOfDevice}`,
+                                obj: {
+                                    type: 'device',
+                                    common: {
+                                        name: xmlFN,
+                                        extIcon: `http://${strLocation}:${strPort}${xmlIconURL}`
+                                    },
+                                    native: {
+                                        ip: strLocation,
+                                        port: strPort,
+                                        uuid: xmlUDN,
+                                        deviceType: xmlDeviceType,
+                                        manufacturer: xmlManufacturer,
+                                        manufacturerURL: xmlManufacturerURL,
+                                        modelNumber: xmlModelNumber,
+                                        modelDescription: xmlModelDescription,
+                                        modelName: xmlModelName,
+                                        modelURL: xmlModelURL
+                                    }
                                 }
-                            }});
+                            });
                             let pathRoot = result.root.device[0];
                             let objectName = `${xmlFN}.${xmlTypeOfDevice}`;
-                            createServiceList(result, xmlFN, xmlTypeOfDevice, objectName, strLocation, strPort, pathRoot, tasks);
-                            tasks.push({name: 'setObjectNotExists', id: `${xmlFN}.${xmlTypeOfDevice}.Alive`, obj: {
-                                type: 'state',
-                                common: {
-                                    name: 'Alive',
-                                    type: 'boolean',
-                                    role: 'indicator.state',
-                                    read: true,
-                                    write: true
-                                },
-                                native: {}
-                            }});
+                            createServiceList(result, xmlFN, xmlTypeOfDevice, objectName, strLocation, strPort, pathRoot);
+                            addTask({
+                                name: 'setObjectNotExists', id: `${xmlFN}.${xmlTypeOfDevice}.Alive`, obj: {
+                                    type: 'state',
+                                    common: {
+                                        name: 'Alive',
+                                        type: 'boolean',
+                                        role: 'indicator.state',
+                                        read: true,
+                                        write: true
+                                    },
+                                    native: {}
+                                }
+                            });
                             //END - Creating the root object of a device
 
 
@@ -355,7 +364,7 @@ function firstDevLookup(strLocation) {
                                 i_SubDevices = path.deviceList[0].device.length;
 
                                 if (i_SubDevices) {
-                                    //adapter.log.debug("Found more than one SubDevice");
+                                    //adapter.log.debug('Found more than one SubDevice');
                                     for (i = i_SubDevices - 1; i >= 0; i--) {
 
                                         //Looking for deviceType of device
@@ -440,45 +449,49 @@ function firstDevLookup(strLocation) {
                                         }
 
                                         //The SubDevice object
-                                        tasks.push({name: 'setObjectNotExists', id: `${xmlFN}.${xmlTypeOfDevice}`, obj: {
-                                            type: 'device',
-                                            common: {
-                                                name: xmlfriendlyName
-                                            },
-                                            native: {
-                                                ip: strLocation,
-                                                port: strPort,
-                                                uuid: xmlUDN,
-                                                deviceType: xmlDeviceType.toString(),
-                                                manufacturer: xmlManufacturer.toString(),
-                                                manufacturerURL: xmlManufacturerURL.toString(),
-                                                modelNumber: xmlModelNumber.toString(),
-                                                modelDescription: xmlModelDescription.toString(),
-                                                modelName: xmlModelName.toString(),
-                                                modelURL: xmlModelURL.toString()
+                                        addTask({
+                                            name: 'setObjectNotExists', id: `${xmlFN}.${xmlTypeOfDevice}`, obj: {
+                                                type: 'device',
+                                                common: {
+                                                    name: xmlfriendlyName
+                                                },
+                                                native: {
+                                                    ip: strLocation,
+                                                    port: strPort,
+                                                    uuid: xmlUDN,
+                                                    deviceType: xmlDeviceType.toString(),
+                                                    manufacturer: xmlManufacturer.toString(),
+                                                    manufacturerURL: xmlManufacturerURL.toString(),
+                                                    modelNumber: xmlModelNumber.toString(),
+                                                    modelDescription: xmlModelDescription.toString(),
+                                                    modelName: xmlModelName.toString(),
+                                                    modelURL: xmlModelURL.toString()
+                                                }
                                             }
-                                        }}); //END SubDevice Object
+                                        }); //END SubDevice Object
                                         let pathSub = result.root.device[0].deviceList[0].device[i];
                                         let objectNameSub = `${xmlFN}.${xmlTypeOfDevice}`;
-                                        createServiceList(result, xmlFN, xmlTypeOfDevice, objectNameSub, strLocation, strPort, pathSub, tasks);
-                                        tasks.push({name: 'setObjectNotExists', id: `${xmlFN}.${xmlTypeOfDevice}.Alive`, obj: {
-                                            type: 'state',
-                                            common: {
-                                                name: 'Alive',
-                                                type: 'boolean',
-                                                role: 'indicator.state',
-                                                read: true,
-                                                write: true
-                                            },
-                                            native: {}
-                                        }});
+                                        createServiceList(result, xmlFN, xmlTypeOfDevice, objectNameSub, strLocation, strPort, pathSub);
+                                        addTask({
+                                            name: 'setObjectNotExists', id: `${xmlFN}.${xmlTypeOfDevice}.Alive`, obj: {
+                                                type: 'state',
+                                                common: {
+                                                    name: 'Alive',
+                                                    type: 'boolean',
+                                                    role: 'indicator.state',
+                                                    read: true,
+                                                    write: true
+                                                },
+                                                native: {}
+                                            }
+                                        });
                                         let TypeOfSubDevice = xmlTypeOfDevice;
 
                                         //START - Creating SubDevices list for a sub-device
                                         if (path.deviceList[0].device[i].deviceList && path.deviceList[0].device[i].deviceList[0].device) {
                                             //Counting SubDevices
-                                           let i_SubSubDevices = path.deviceList[0].device[i].deviceList[0].device.length;
-                                           let i2;
+                                            let i_SubSubDevices = path.deviceList[0].device[i].deviceList[0].device.length;
+                                            let i2;
 
                                             if (i_SubSubDevices) {
                                                 for (i2 = i_SubSubDevices - 1; i2 >= 0; i--) {
@@ -504,7 +517,7 @@ function firstDevLookup(strLocation) {
                                                         xmlFN = nameFilter(xmlfriendlyName);
                                                     } catch (err) {
                                                         adapter.log.debug(`Can not read friendlyName of SubDevice from ${xmlFN}`);
-                                                        xmlfriendlyName = "Unknown";
+                                                        xmlfriendlyName = 'Unknown';
                                                     }
                                                     //Looking for the manufacturer of a device
                                                     try {
@@ -539,7 +552,7 @@ function firstDevLookup(strLocation) {
                                                     try {
                                                         xmlDeviceType = path.deviceList[0].device[i].deviceList[0].device[i2].deviceType;
                                                     } catch (err) {
-                                                        adapter.log.debug("Can not read DeviceType of " + xmlfriendlyName);
+                                                        adapter.log.debug('Can not read DeviceType of ' + xmlfriendlyName);
                                                         xmlDeviceType = '';
                                                     }
                                                     //Looking for the modelName
@@ -567,38 +580,46 @@ function firstDevLookup(strLocation) {
                                                     }
 
                                                     //The SubDevice object
-                                                    tasks.push({name: 'setObjectNotExists', id: `${xmlFN}.${TypeOfSubDevice}.${xmlTypeOfDevice}`, obj: {
-                                                        type: 'device',
-                                                        common: {
-                                                            name: xmlfriendlyName
-                                                        },
-                                                        native: {
-                                                            ip: strLocation,
-                                                            port: strPort,
-                                                            uuid: xmlUDN,
-                                                            deviceType: xmlDeviceType.toString(),
-                                                            manufacturer: xmlManufacturer.toString(),
-                                                            manufacturerURL: xmlManufacturerURL.toString(),
-                                                            modelNumber: xmlModelNumber.toString(),
-                                                            modelDescription: xmlModelDescription.toString(),
-                                                            modelName: xmlModelName.toString(),
-                                                            modelURL: xmlModelURL.toString()
+                                                    addTask({
+                                                        name: 'setObjectNotExists',
+                                                        id: `${xmlFN}.${TypeOfSubDevice}.${xmlTypeOfDevice}`,
+                                                        obj: {
+                                                            type: 'device',
+                                                            common: {
+                                                                name: xmlfriendlyName
+                                                            },
+                                                            native: {
+                                                                ip: strLocation,
+                                                                port: strPort,
+                                                                uuid: xmlUDN,
+                                                                deviceType: xmlDeviceType.toString(),
+                                                                manufacturer: xmlManufacturer.toString(),
+                                                                manufacturerURL: xmlManufacturerURL.toString(),
+                                                                modelNumber: xmlModelNumber.toString(),
+                                                                modelDescription: xmlModelDescription.toString(),
+                                                                modelName: xmlModelName.toString(),
+                                                                modelURL: xmlModelURL.toString()
+                                                            }
                                                         }
-                                                    }}); //END SubDevice Object
+                                                    }); //END SubDevice Object
                                                     pathSub = result.root.device[0].deviceList[0].device[i].deviceList[0].device[i2];
                                                     objectNameSub = `${xmlFN}.${TypeOfSubDevice}.${xmlTypeOfDevice}`;
-                                                    createServiceList(result, xmlFN, `${TypeOfSubDevice}.${xmlTypeOfDevice}`, objectNameSub, strLocation, strPort, pathSub, tasks);
-                                                    tasks.push({name: 'setObjectNotExists', id: `${xmlFN}.${TypeOfSubDevice}.${xmlTypeOfDevice}.Alive`, obj: {
-                                                        type: 'state',
-                                                        common: {
-                                                            name: 'Alive',
-                                                            type: 'boolean',
-                                                            role: 'indicator.state',
-                                                            read: true,
-                                                            write: true
-                                                        },
-                                                        native: {}
-                                                    }});
+                                                    createServiceList(result, xmlFN, `${TypeOfSubDevice}.${xmlTypeOfDevice}`, objectNameSub, strLocation, strPort, pathSub);
+                                                    addTask({
+                                                        name: 'setObjectNotExists',
+                                                        id: `${xmlFN}.${TypeOfSubDevice}.${xmlTypeOfDevice}.Alive`,
+                                                        obj: {
+                                                            type: 'state',
+                                                            common: {
+                                                                name: 'Alive',
+                                                                type: 'boolean',
+                                                                role: 'indicator.state',
+                                                                read: true,
+                                                                write: true
+                                                            },
+                                                            native: {}
+                                                        }
+                                                    });
                                                 } //END for
                                             }//END if
                                         } //END if
@@ -611,7 +632,7 @@ function firstDevLookup(strLocation) {
 
                         }//END else
 
-                        processTasks(tasks);
+                        processTasks();
                     }
                 );
             } catch (error) {
@@ -624,10 +645,11 @@ function firstDevLookup(strLocation) {
     });
     return true;
 }
+
 //END Reading the xml device description file of each upnp device
 
 //START Creating serviceList
-function createServiceList(result, xmlFN, xmlTypeOfDevice, object, strLocation, strPort, path, tasks){
+function createServiceList(result, xmlFN, xmlTypeOfDevice, object, strLocation, strPort, path) {
     if (!path.serviceList) {
         adapter.log.debug('No service list found at ' + JSON.stringify(path));
         return;
@@ -643,7 +665,7 @@ function createServiceList(result, xmlFN, xmlTypeOfDevice, object, strLocation, 
 
 
     //Counting services
-    //adapter.log.debug("Number of services: " + i_services);
+    //adapter.log.debug('Number of services: ' + i_services);
 
     for (i = i_services - 1; i >= 0; i--) {
 
@@ -654,7 +676,7 @@ function createServiceList(result, xmlFN, xmlTypeOfDevice, object, strLocation, 
             xmlService = xmlService.replace(/"/g, '');
         } catch (err) {
             adapter.log.debug(`Can not read service of ${xmlFN}`);
-            xmlService = "Unknown";
+            xmlService = 'Unknown';
         }
 
         try {
@@ -697,7 +719,7 @@ function createServiceList(result, xmlFN, xmlTypeOfDevice, object, strLocation, 
             xmlSCPDURL = '';
         }
 
-        tasks.push({
+        addTask({
             name: 'setObjectNotExists', id: `${object}.${xmlService}`, obj: {
                 type: 'channel',
                 common: {
@@ -713,7 +735,7 @@ function createServiceList(result, xmlFN, xmlTypeOfDevice, object, strLocation, 
             }
         });
 
-        tasks.push({
+        addTask({
             name: 'setObjectNotExists', id: `${object}.${xmlService}.sid`, obj: {
                 type: 'state',
                 common: {
@@ -729,9 +751,10 @@ function createServiceList(result, xmlFN, xmlTypeOfDevice, object, strLocation, 
 
         let SCPDlocation = `http://${strLocation}:${strPort}${xmlSCPDURL}`;
         let service = `${xmlFN}.${xmlTypeOfDevice}.${xmlService}`;
-        tasks.push({name: 'readSCPD', SCPDlocation, service});
+        addTask({name: 'readSCPD', SCPDlocation, service});
     }
 }
+
 //END Creating serviceList
 
 //START Read the SCPD File  of a upnp device service
@@ -757,10 +780,10 @@ function readSCPD(SCPDlocation, service, cb) {
                                 adapter.log.debug('Error by parsing of ' + SCPDlocation);
                                 cb();
                             } else {
-                                const tasks = [];
-                                createServiceStateTable(result, service, tasks);
-                                createActionList(result, service, tasks);
-                                setImmediate(processTasks, tasks, cb);
+                                createServiceStateTable(result, service);
+                                createActionList(result, service);
+                                processTasks();
+                                cb && cb();
                             }
                         } //END if
                     } //END function
@@ -774,10 +797,11 @@ function readSCPD(SCPDlocation, service, cb) {
         }
     });
 }
+
 //END Read the SCPD File  of a upnp device service
 
 //START Creating serviceStateTable
-function createServiceStateTable(result, service, tasks){
+function createServiceStateTable(result, service) {
     let i_stateVariable = 0;
     let i2 = 0;
     let path;
@@ -804,7 +828,7 @@ function createServiceStateTable(result, service, tasks){
     }
 
     //Counting stateVariable's
-    //adapter.log.debug("Number of stateVariables: " + i_stateVariable);
+    //adapter.log.debug('Number of stateVariables: ' + i_stateVariable);
     try {
         for (i2 = i_stateVariable - 1; i2 >= 0; i2--) {
             stateVariableAttr = undefined;
@@ -858,14 +882,15 @@ function createServiceStateTable(result, service, tasks){
             } catch (err) {
             }
 
-            createService(tasks);
+            createService();
         }//END for
-    } catch (err) {}
+    } catch (err) {
+    }
 
-    function createService(tasks) {
+    function createService() {
         //Handles DataType ui2 as Number
         let dataType;
-        if (xmlDataType.toString() === 'ui2'){
+        if (xmlDataType.toString() === 'ui2') {
             dataType = 'number';
         } else {
             dataType = xmlDataType.toString();
@@ -873,41 +898,48 @@ function createServiceStateTable(result, service, tasks){
         if (typeof xmlName === 'object' && xmlName[0]) {
             xmlName = xmlName[0];
         }
-        tasks.push({name: 'setObjectNotExists', id: `${service}.${xmlName}`, obj: {
-            type: 'state',
-            common: {
-                name: xmlName.toString(),
-                type: dataType,
-                role: 'indicator.state',
-                read: true
-            },
-            native: {
+        addTask({
+            name: 'setObjectNotExists', id: `${service}.${xmlName}`, obj: {
+                type: 'state',
+                common: {
+                    name: xmlName.toString(),
+                    type: dataType,
+                    role: 'indicator.state',
+                    read: true
+                },
+                native: {
                     sendEvents: stateVariableAttr,
                     allowedValues: strAllowedValues,
                     defaultValue: strDefaultValue,
                     minimum: strMinimum,
                     maximum: strMaximum,
                     step: strStep,
+                }
             }
-        }});
+        });
     }
+
     //END Add serviceList for SubDevice
 
 } //END function
 //END Creating serviceStateTable
 
 //START Creating actionList
-function createActionList(result, service, tasks){
+function createActionList(result, service) {
     let i_action = 0;
     let i2;
     let path;
     let xmlName;
 
     path = result.scpd.actionList[0];
-    try {i_action = path.action.length;} catch (err) {i_action = 1;}
+    try {
+        i_action = path.action.length;
+    } catch (err) {
+        i_action = 1;
+    }
 
     //Counting action's
-    //adapter.log.debug("Number of actions: " + i_action);
+    //adapter.log.debug('Number of actions: ' + i_action);
 
     if (i_action) {
         try {
@@ -915,52 +947,59 @@ function createActionList(result, service, tasks){
 
                 xmlName = path.action[i2].name;
 
-                createAction(tasks);
+                createAction();
             }
-        } catch (err) {}
+        } catch (err) {
+        }
 
     }//END if
 
-    function createAction(tasks){
-        tasks.push({name: 'setObjectNotExists', id: `${service}.${xmlName}`, obj: {
-            type: 'state',
-            common: {
-                name: xmlName.toString(),
-                role: 'action',
-                type: 'mixed',
-                read: true,
-                write: true
-            },
-            native: {}
-        }});
+    function createAction() {
+        addTask({
+            name: 'setObjectNotExists', id: `${service}.${xmlName}`, obj: {
+                type: 'state',
+                common: {
+                    name: xmlName.toString(),
+                    role: 'action',
+                    type: 'mixed',
+                    read: true,
+                    write: true
+                },
+                native: {}
+            }
+        });
 
         try {
-            createArgumentList(result, service, xmlName, i2, path, tasks);
-        } catch(err){
+            createArgumentList(result, service, xmlName, i2, path);
+        } catch (err) {
             adapter.log.debug(`There is no argument for ${xmlName}`);
         }
     }
+
     //END Add serviceList for SubDevice
 
 } //END function
 //END Creating actionList
 
 
-
 //START Creating argumentList
-function createArgumentList(result, service, actionName, action_number, path, tasks){
+function createArgumentList(result, service, actionName, action_number, path) {
     let i_argument = 0;
     let i2;
     let xmlName;
     let xmlDirection;
     let xmlrelStateVar;
 
-    //adapter.log.debug("Reading argumentList for " + actionName);
+    //adapter.log.debug('Reading argumentList for ' + actionName);
 
-    try{i_argument = path.action[action_number].argumentList[0].argument.length;} catch (err){i_argument = 1;}
+    try {
+        i_argument = path.action[action_number].argumentList[0].argument.length;
+    } catch (err) {
+        i_argument = 1;
+    }
 
     //Counting arguments's
-    //adapter.log.debug("Number of argument's: " + i_argument);
+    //adapter.log.debug('Number of argument's: ' + i_argument);
 
     if (i_argument) {
 
@@ -968,77 +1007,91 @@ function createArgumentList(result, service, actionName, action_number, path, ta
 
             try {
                 xmlName = path.action[action_number].argumentList[0].argument[i2].name;
-            } catch(err){
+            } catch (err) {
                 adapter.log.debug(`Can not read argument Name of ${actionName}`);
-                xmlName = "Unknown";
+                xmlName = 'Unknown';
             }
 
             try {
                 xmlDirection = path.action[action_number].argumentList[0].argument[i2].direction;
-            } catch(err) {
+            } catch (err) {
                 adapter.log.debug(`Can not read direction of ${actionName}`);
                 xmlDirection = '';
             }
 
             try {
                 xmlrelStateVar = path.action[action_number].argumentList[0].argument[i2].relatedStateVariable;
-            } catch(err) {
+            } catch (err) {
                 aadapter.log.debug(`Can not read relatedStateVariable of ${actionName}`);
                 xmlrelStateVar = '';
             }
-            createArgument(i2, tasks);
+            createArgument(i2);
         }
     }//END if
 
-    function createArgument(arg_no, tasks) {
-        tasks.push({name: 'setObjectNotExists', id: `${service}.${actionName}.${xmlName}`, obj: {
-            type: 'state',
-            common: {
-                name: xmlName.toString,
-                role: 'argument',
-                type: 'mixed',
-                read: true,
-                write: true
-            },
-            native: {
-                direction: xmlDirection.toString(),
-                relatedStateVariable: xmlrelStateVar.toString(),
-                Argument_No: arg_no + 1
+    function createArgument(arg_no) {
+        addTask({
+            name: 'setObjectNotExists', id: `${service}.${actionName}.${xmlName}`, obj: {
+                type: 'state',
+                common: {
+                    name: xmlName.toString,
+                    role: 'argument',
+                    type: 'mixed',
+                    read: true,
+                    write: true
+                },
+                native: {
+                    direction: xmlDirection.toString(),
+                    relatedStateVariable: xmlrelStateVar.toString(),
+                    Argument_No: arg_no + 1
+                }
             }
-        }}); //END adapter.setObject()
+        }); //END adapter.setObject()
     }
+
     //END Add argumentList for action
 
 } //END function
 //END Creating argumentList
 
-function processTasks(tasks, cb) {
-    if (!tasks || !tasks.length) {
-        cb && cb();
+function processTasks() {
+    if (!taskRunning && tasks.length) {
+        taskRunning = true;
+        setImmediate(_processTasks);
+    }
+}
+
+function addTask(task) {
+    tasks.push(task);
+}
+
+function _processTasks() {
+    if (!tasks.length) {
+        taskRunning = false;
     } else {
         const task = tasks.shift();
         if (task.name === 'setState') {
             adapter.setState(task.id, task.state, err => {
                 if (typeof task.cb === 'function') {
-                    task.cb(() => setImmediate(processTasks, tasks, cb));
+                    task.cb(() => setImmediate(_processTasks));
                 } else {
-                    setImmediate(processTasks, tasks, cb);
+                    setImmediate(_processTasks);
                 }
             });
         } else if (task.name === 'valChannel') {
             valChannel(task.strState, task.serviceID, () => {
                 writeState(task.serviceID, task.stateName, task.val, () => {
-                    setImmediate(processTasks, tasks, cb);
+                    setImmediate(_processTasks);
                 });
             });
 
         } else if (task.name === 'readSCPD') {
-            readSCPD(task.SCPDlocation, task.service, () => setImmediate(processTasks, tasks, cb));
+            readSCPD(task.SCPDlocation, task.service, () => setImmediate(_processTasks));
         } else if (task.name === 'setObjectNotExists') {
-            adapter.setObjectNotExists(task.id, task.obj, () => setImmediate(processTasks, tasks, cb));
+            adapter.setObjectNotExists(task.id, task.obj, () => setImmediate(_processTasks));
         } else {
             adapter.log.warn('Unknown task: ' + task.name);
-            setImmediate(processTasks, tasks, cb);
+            setImmediate(_processTasks);
         }
     }
 }
@@ -1063,7 +1116,7 @@ server.on('advertise-alive', headers => {
         usn = usn.toString();
         usn = usn.replace(/uuid:/ig, '');
         usn = usn.replace(/::.*/ig, '"');
-    } catch (err){
+    } catch (err) {
         adapter.log.error(err);
         usn = ' ';
     }
@@ -1071,29 +1124,37 @@ server.on('advertise-alive', headers => {
     let location = JSON.stringify(headers['LOCATION']);
     if (usn.match(/.*f40c2981-7329-40b7-8b04-27f187aecfb5.*/)) {
     } else {
-        
+
         adapter.getDevices((err, devices) => {
             let device;
             let device_id;
             let device_uuid;
             let device_usn;
             let found_uuid = false;
-            let tasks = [];
             for (device in devices) {
                 if (!devices.hasOwnProperty(device)) continue;
                 device_uuid = JSON.stringify(devices[device]['native']['uuid']);
                 device_usn = JSON.stringify(devices[device]['native']['deviceType']);
                 //Set object Alive for the Service true
-                if(device_uuid === usn && device_usn === nt){
+                if (device_uuid === usn && device_usn === nt) {
                     let max_age = JSON.stringify(headers['CACHE-CONTROL']);
-                    try{max_age = max_age.replace(/max-age.=./ig, '');} catch(err){}
-                    try{max_age = max_age.replace(/max-age=/ig, '');} catch(err){}
-                    try{max_age = max_age.replace(/"/ig, '');} catch(err){}
+                    try {
+                        max_age = max_age.replace(/max-age.=./ig, '');
+                    } catch (err) {
+                    }
+                    try {
+                        max_age = max_age.replace(/max-age=/ig, '');
+                    } catch (err) {
+                    }
+                    try {
+                        max_age = max_age.replace(/"/ig, '');
+                    } catch (err) {
+                    }
                     device_id = JSON.stringify(devices[device]['_id']);
                     device_id = device_id.replace(/"/ig, '');
-                    tasks.push({
-                        name: 'setState', 
-                        id: `${device_id}.Alive`, 
+                    addTask({
+                        name: 'setState',
+                        id: `${device_id}.Alive`,
                         state: {val: true, ack: true, expire: max_age}
                     });
                 } //END if
@@ -1109,7 +1170,7 @@ server.on('advertise-alive', headers => {
                     catchNewDevices(location);
                 } //END if
             } //END if
-            processTasks(tasks);
+            processTasks();
         }); //END adapter.getDevices()
     } //END if
 });
@@ -1128,7 +1189,6 @@ server.on('advertise-bye', headers => {
     if (usn.match(/.*f40c2981-7329-40b7-8b04-27f187aecfb5.*/)) {
     } else {
         adapter.getDevices((err, devices) => {
-            let tasks = [];
             let device;
             let device_id;
             let device_uuid;
@@ -1138,17 +1198,17 @@ server.on('advertise-bye', headers => {
                 device_uuid = JSON.stringify(devices[device]['native']['uuid']);
                 device_usn = JSON.stringify(devices[device]['native']['deviceType']);
                 //Set object Alive for the Service false
-                if (device_uuid === usn){
+                if (device_uuid === usn) {
                     device_id = JSON.stringify(devices[device]['_id']);
                     device_id = device_id.replace(/"/ig, '');
-                    tasks.push({
+                    addTask({
                         name: 'setState',
                         id: `${device_id}.Alive`,
                         state: {val: false, ack: true}
                     });
                 } //END if
             }  //END for
-            processTasks(tasks);
+            processTasks();
         }); //END adapter.getDevices()
     } //END if
 });
@@ -1159,7 +1219,7 @@ server.on('advertise-bye', headers => {
 setTimeout(() => server.start(), 15000);
 
 //is called if device isn't already in objects present
-function catchNewDevices(device){
+function catchNewDevices(device) {
     device = device.replace(/"/ig, '');
     firstDevLookup(device);
     is_running = false;
@@ -1168,6 +1228,7 @@ function catchNewDevices(device){
 function stopServer() {
     server.stop(); // advertise shutting down and stop listening
 }
+
 //END Server for Alive and ByeBye messages
 
 
@@ -1179,7 +1240,7 @@ let infoSub;
 // let answer;
 
 //Subscribe to every service that is alive. Triggered by change alive from false/null to true.
-function subscribeEvent(id, state){
+function subscribeEvent(id, state) {
     service = id.replace(/\.Alive/ig, '');
     let alive = JSON.stringify(state['val']);
     if (alive === 'true' && adapter.config.enableAutoSubscription === true) {
@@ -1204,7 +1265,8 @@ function subscribeEvent(id, state){
                     try {
                         infoSub = new Subscription(device_ip, device_port, event_url, 1000);
                         listener(event_url, _channel[x]);
-                    } catch (err){}
+                    } catch (err) {
+                    }
 
 
                 } //END for
@@ -1248,9 +1310,9 @@ function listener(event_url, _channel) {
 let arrSID = [];
 
 //Get all .sid Objects for the services and build an array, that is used as index to find them faster
-function events2objects(data, _channel){
+function events2objects(data, _channel) {
     let arrLength = arrSID.length;
-    if (!arrLength){
+    if (!arrLength) {
         arrSID.push('dummy');
         //Fill array arrSID if it is empty
         adapter.getStatesOf(`upnp.${adapter.instance}`, (err, _states) => {
@@ -1274,9 +1336,9 @@ function events2objects(data, _channel){
         if (arrLength === 1) {
             //adapter.log.debug('Waiting for the array');
             setTimeout(() =>
-                //adapter.log.debug('50ms gone ' + arrSID.length);
-                lookupService(data, arrLength)
-            , 1500)
+                    //adapter.log.debug('50ms gone ' + arrSID.length);
+                    lookupService(data, arrLength)
+                , 1500)
         } else {
             //adapter.log.debug('Array arrSID is already filled');
             lookupService(data, arrLength);
@@ -1310,13 +1372,13 @@ function lookupService(data, arrLength, cb, y, counter) {
     }
 }
 
-function setNewState(obj, count, data, cb){
+function setNewState(obj, count, data, cb) {
     let varsid;
     //Extract the value of the state
     try {
         varsid = obj.val;
     } catch (err) {
-    } 
+    }
 
     if (varsid !== null && varsid !== undefined) {
         let helper = JSON.stringify(data['sid']); //Get the sid from actual message
@@ -1330,11 +1392,12 @@ function setNewState(obj, count, data, cb){
 
             //Select sub element with States
             let newStates;
-                newStates = data['body']['e:propertyset']['e:property'];
+            newStates = data['body']['e:propertyset']['e:property'];
 
             try {
                 newStates = newStates['LastChange']['_'];
-            } catch (err) {}
+            } catch (err) {
+            }
 
             if (newStates === undefined || newStates === null) {
                 newStates = data['body']['e:propertyset']['e:property']['LastChange'];
@@ -1344,13 +1407,12 @@ function setNewState(obj, count, data, cb){
 
             if (newStates2.match(/<Event.*/ig)) {
                 parseString(newStates, (err, result) => {
-                    let tasks = [];
                     let states = convertEventObject(result['Event']);
                     //split every array member into state name and value, then push it to ioBroker state
                     let stateName;
                     let val;
 
-                    for (let x = states.length -1; x >= 0; x--){
+                    for (let x = states.length - 1; x >= 0; x--) {
                         let strState = states[x].toString();
                         stateName = strState.match(/"\w*/i);
                         stateName = stateName.toString();
@@ -1363,41 +1425,42 @@ function setNewState(obj, count, data, cb){
                             val = val.replace(/val":"/ig, '');
                         }
 
-                        tasks.push({name: 'valChannel', strState, serviceID, stateName, val});
+                        addTask({name: 'valChannel', strState, serviceID, stateName, val});
                     }
-                    processTasks(tasks, cb);
+                    processTasks();
+                    cb && cb();
                 }); //END parseString()
             } else if (newStates2.match(/"\$":/ig)) {
                 let states = convertWM(newStates);
 
                 // split every array member into state name and value, then push it to ioBroker state
                 let stateName;
-                let tasks = [];
-                for (let z = states.length -1; z >= 0; z--){
+                for (let z = states.length - 1; z >= 0; z--) {
                     let strState = states[z].toString();
                     stateName = strState.match(/"\w*/i);
                     stateName = stateName.toString();
                     stateName = stateName.replace(/"/i, '');
 
-                    tasks.push({name: 'valChannel', strState, serviceID, stateName, val: valLookup(strState)});
+                    addTask({name: 'valChannel', strState, serviceID, stateName, val: valLookup(strState)});
                 }
-                processTasks(tasks, cb);
+                processTasks();
+                cb();
             } else {
                 //Read all other messages and write the states to the related objects
                 let states = convertInitialObject(newStates);
 
                 // split every array member into state name and value, then push it to ioBroker state
                 let stateName;
-                let tasks = [];
-                for (let z = states.length -1; z >= 0; z--) {
+                for (let z = states.length - 1; z >= 0; z--) {
                     let strState = states[z].toString();
                     stateName = strState.match(/"\w*/i);
                     stateName = stateName.toString();
                     stateName = stateName.replace(/"/i, '');
 
-                    tasks.push({name: 'valChannel', strState, serviceID, stateName, val: valLookup(strState)});
+                    addTask({name: 'valChannel', strState, serviceID, stateName, val: valLookup(strState)});
                 }
-                processTasks(tasks, cb);
+                processTasks();
+                cb();
             } //END if Event
 
         } //END if
@@ -1449,8 +1512,8 @@ function valChannel(strState, serviceID, cb) {
 }
 
 //looking for the value
-function valLookup(strState){
-   let val = strState.match(/\w*":"(\w*\D\w|\w*|,\s\w*|(\w*:)*(\*)*(\/)*(,)*(-)*(\.)*)*/ig);
+function valLookup(strState) {
+    let val = strState.match(/\w*":"(\w*\D\w|\w*|,\s\w*|(\w*:)*(\*)*(\/)*(,)*(-)*(\.)*)*/ig);
     if (val) {
         val = val.toString();
         val = val.replace(/"\w*":"/i, '');
@@ -1478,14 +1541,14 @@ function convertEventObject(result) {
 }
 
 //convert the initial message JSON into an array
-function convertInitialObject(result){
+function convertInitialObject(result) {
     const regex = new RegExp(/"\w*":"(\w*|\w*\D\w*|(\w*-)*\w*:\w*|(\w*,\w*)*|\w*:\S*\*)"/g);
     let strResult = JSON.stringify(result);
     return strResult.match(regex);
 }
 
 //convert the initial message JSON into an array for windows media player/server
-function convertWM(result){
+function convertWM(result) {
     const regex = new RegExp(/"\w*":{".":"(\w*"|((http-get:\*:\w*\/((\w*\.)*|(\w*-)*|(\w*\.)*(\w*-)*)\w*:\w*\.\w*=\w*(,)*)*((http-get|rtsp-rtp-udp):\*:\w*\/(\w*(\.|-))*\w*:\*(,)*)*))/g);
     let strResult = JSON.stringify(result);
     return strResult.match(regex);
@@ -1495,33 +1558,36 @@ function convertWM(result){
 
 //START clear Alive and sid's states when Adapter stops
 function clearAsStates(cb) {
-    const tasks = [];
     //Clear sid
     let arrLength = arrSID.length;
     if (arrLength) {
-        for(let x = arrLength; x >= 0; x--){
+        for (let x = arrLength; x >= 0; x--) {
             try {
-                tasks.push({name: 'setState', id: arrSID[x], state: {val: '', ack: true}});
-            } catch(err) {}
+                addTask({name: 'setState', id: arrSID[x], state: {val: '', ack: true}});
+            } catch (err) {
+            }
         } //END for
     } //END if
 
     //Clear Alive
     arrLength = arrAlive.length;
-    if (arrLength){
+    if (arrLength) {
         for (let y = arrLength; y >= 0; y--) {
             try {
-                tasks.push({name: 'setState', id: arrAlive[y], state: {val: 'false', ack: true}});
-            } catch(err) {}
+                addTask({name: 'setState', id: arrAlive[y], state: {val: 'false', ack: true}});
+            } catch (err) {
+            }
         } //END for
     } //END if
 
     adapter.log.info('Alive and sid states cleared');
-    processTasks(tasks, cb);
+    processTasks();
+    cb && cb();
 }
+
 //END clear Alive and sid's
 
-function createAliveArr(){
+function createAliveArr() {
     adapter.getStatesOf(`upnp.${adapter.instance}`, (err, _states) => {
         let arrLength = arrAlive.length;
         let statesLength = _states.length;
@@ -1542,7 +1608,7 @@ function createAliveArr(){
 //START control of devices
 // let test = [];
 
-function sendCommand(obj){
+function sendCommand(obj) {
     adapter.log.debug('Send Command');
     let id = obj._id;
     let actionName = obj.common.name;
@@ -1564,22 +1630,37 @@ function sendCommand(obj){
 
                 let args = [];
 
-                for (let x = _states.length -1; x >= 0; x--){
+                for (let x = _states.length - 1; x >= 0; x--) {
                     let argumentsOfAction = _states[x]._id;
                     let obj = _states[x];
                     let test2 = id + '\\.';
-                    try{test2 = test2.replace(/\(/gi, '.');} catch(err){adapter.log.debug(err)}
-                    try{test2 = test2.replace(/\)/gi, '.');} catch(err){adapter.log.debug(err)}
-                    try{test2 = test2.replace(/\[/gi, '.');} catch(err){adapter.log.debug(err)}
-                    try{test2 = test2.replace(/ ]/gi, '.');} catch(err){adapter.log.debug(err)}
+                    try {
+                        test2 = test2.replace(/\(/gi, '.');
+                    } catch (err) {
+                        adapter.log.debug(err)
+                    }
+                    try {
+                        test2 = test2.replace(/\)/gi, '.');
+                    } catch (err) {
+                        adapter.log.debug(err)
+                    }
+                    try {
+                        test2 = test2.replace(/\[/gi, '.');
+                    } catch (err) {
+                        adapter.log.debug(err)
+                    }
+                    try {
+                        test2 = test2.replace(/ ]/gi, '.');
+                    } catch (err) {
+                        adapter.log.debug(err)
+                    }
                     let re = new RegExp(test2, 'g');
                     let testResult = re.test(argumentsOfAction);
-                    if (testResult && argumentsOfAction !== id){
+                    if (testResult && argumentsOfAction !== id) {
                         args.push(obj);
                     }
 
                 } //END for
-
 
 
                 let body = '';
@@ -1590,7 +1671,7 @@ function sendCommand(obj){
                     let states = JSON.stringify(idStates);
                     states = states.replace(/,"ack":\w*,"ts":\d*,"q":\d*,"from":"(\w*\.)*(\d*)","lc":\d*/g, '');
 
-                    for (let z = args.length -1; z >= 0; z--){
+                    for (let z = args.length - 1; z >= 0; z--) {
                         //check if the argument has to be send with the action
                         if (args[z].native.direction === 'in') {
                             let arg_no = args[z].native.Argument_No;
@@ -1627,28 +1708,37 @@ function sendCommand(obj){
                                 testResult2 = testResult2.match(/val\\":(\\"[^"]*|\d*)}?/g);
                                 testResult2 = JSON.stringify(testResult2);
                                 testResult2 = testResult2.replace(/\["val(\\)*":(\\)*/, '');
-                                try{testResult2 = testResult2.replace(/]/, '');} catch (err){}
-                                try{testResult2 = testResult2.replace(/}"/, '');} catch (err){}
-                                    try {
-                                        testResult2 = testResult2.replace(/"/g, '');
-                                    } catch (err) {
-                                    }
+                                try {
+                                    testResult2 = testResult2.replace(/]/, '');
+                                } catch (err) {
+                                }
+                                try {
+                                    testResult2 = testResult2.replace(/}"/, '');
+                                } catch (err) {
+                                }
+                                try {
+                                    testResult2 = testResult2.replace(/"/g, '');
+                                } catch (err) {
+                                }
 
 
                                 //extract argument name from id string
                                 let test1 = args[z]._id;
                                 let argName = test1.replace(`${id}\.`, '');
 
-                                helperBody[arg_no] = "<" + argName + ">" + testResult2 + "</" + argName + ">";
+                                helperBody[arg_no] = '<' + argName + '>' + testResult2 + '</' + argName + '>';
                             }
                         }
                     } //END for
 
                     //convert helperBody array to string and add it to main body string
                     helperBody = helperBody.toString();
-                    try{helperBody = helperBody.replace(/,/g, '');} catch(err){}
+                    try {
+                        helperBody = helperBody.replace(/,/g, '');
+                    } catch (err) {
+                    }
                     body += helperBody;
-                    body = '<u:" + actionName + " xmlns:u="' + vServiceType + '">' + body;
+                    body = '<u:' + actionName + ' xmlns:u="' + vServiceType + '">' + body;
                     body += '</u:' + actionName + '>';
 
                     createMessage(vServiceType, actionName, ip, port, vControlURL, body, id);
@@ -1660,7 +1750,7 @@ function sendCommand(obj){
 } //END sendCommand()
 
 //START creat Action message
-function createMessage(sType, aName, _ip, _port, cURL, body, action_id){
+function createMessage(sType, aName, _ip, _port, cURL, body, action_id) {
     const UA = 'UPnP/1.0, ioBroker.upnp';
     let url = `http://${_ip}:${_port}${cURL}`;
 
@@ -1697,7 +1787,6 @@ function createMessage(sType, aName, _ip, _port, cURL, body, action_id){
                 //die Zusätlichen infos beim Argument namen müssen entfernt werden damit er genutzt werden kann
                 let foundData = body.match(pattData);
                 if (foundData) {
-                    const tasks = [];
                     for (let i = foundData.length - 1; i >= 0; i--) {
                         let foundArgName = foundData[i].match(/<\w*>/);
                         let strFoundArgName;
@@ -1723,7 +1812,7 @@ function createMessage(sType, aName, _ip, _port, cURL, body, action_id){
 
                         if (strFoundArgName !== 'null') {
                             let argID = action_id + '.' + strFoundArgName;
-                            tasks.push({
+                            addTask({
                                 name: 'setState',
                                 id: argID,
                                 state: {val: argValue, ack: true},
@@ -1734,7 +1823,7 @@ function createMessage(sType, aName, _ip, _port, cURL, body, action_id){
                             });
                         }
                     }
-                    processTasks(tasks);
+                    processTasks();
                 } else {
                     adapter.log.debug('Nothing found: ' + JSON.stringify(body));
                 }
@@ -1745,6 +1834,7 @@ function createMessage(sType, aName, _ip, _port, cURL, body, action_id){
     });
 
 }
+
 //END creat Action message
 
 //Sync Argument with relatedStateVariable
@@ -1796,7 +1886,7 @@ function nameFilter(name) {
             name = name.replace(item, '_');
         }
 
-        let result = name.search (/_$/);
+        let result = name.search(/_$/);
         if (result !== -1) {
             name = name.replace(/_$/, '');
         }
