@@ -953,7 +953,7 @@ function createArgumentList(result, service, actionName, action_number, path) {
 
     //adapter.log.debug('Reading argumentList for ' + actionName);
 
-    if (path.action[action_number].argumentList) {
+    if (path.action[action_number].argumentList && path.action[action_number].argumentList[0] && path.action[action_number].argumentList[0].argument) {
         iLen = path.action[action_number].argumentList[0].argument.length;
     }
 
