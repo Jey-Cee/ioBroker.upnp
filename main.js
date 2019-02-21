@@ -11,13 +11,14 @@ const Subscription = require('./lib/upnp-subscription');
 const parseString = require('xml2js').parseString;
 const request = require('request');
 
-//include Upnp Player
+// include Upnp Player
 const player = require('./lib/player');
 let adapter;
 player.registerTasksHandler(addTask, processTasks);
 
 const tasks = [];
 let taskRunning = false;
+let playerTimer = null;
 
 function startAdapter(options) {
     options = options || {};
@@ -28,6 +29,8 @@ function startAdapter(options) {
     // is called when adapter shuts down - callback has to be called under any circumstances!
     adapter.on('unload', callback => {
         try {
+            playerTimer && clearTimeout(playerTimer);
+            playerTimer = null;
             stopServer();
             adapter.log.info('cleaned everything up...');
             clearAsStates(callback);
@@ -125,7 +128,7 @@ function main() {
         sendBroadcast();
     }
 
-    //Filtering the Device description file addresses, timeout is necessary to wait for all answers
+    // Filtering the Device description file addresses, timeout is necessary to wait for all answers
     setTimeout(() => {
         adapter.log.debug('Found ' + foundIPs.length + ' devices');
         if (adapter.config.rootXMLurl) {
@@ -137,15 +140,13 @@ function main() {
 }
 
 function sendBroadcast() {
-    //adapter.log.debug('Send Broadcast');
+    // adapter.log.debug('Send Broadcast');
 
-    //Sends a Broadcast and catch the URL with xml device description file
-    client.on('response', (headers, statusCode, rinfo) => {
-        let strHeaders = JSON.stringify(headers, null, ' ');
-        let jsonAnswer = JSON.parse(strHeaders);
-        let answer = jsonAnswer.LOCATION;
+    // Sends a Broadcast and catch the URL with xml device description file
+    client.on('response', (headers, _statusCode, _rinfo) => {
+        let answer = (headers || {}).LOCATION;
 
-        if (foundIPs.indexOf(answer) === -1) {
+        if (answer && foundIPs.indexOf(answer) === -1) {
             foundIPs.push(answer);
 
             if (answer !== answer.match(/.*dummy.xml/g)) {
@@ -154,14 +155,12 @@ function sendBroadcast() {
         }
     });
 
-    if (adapter.config.enableAutoDiscover === true) {
-        client.search('ssdp:all');
-    }
+    client.search('ssdp:all');
 }
 
-//START Reading the xml device description file of each upnp device the first time
-function firstDevLookup(strLocation) {
-
+// START Reading the xml device description file of each upnp device the first time
+function firstDevLookup(strLocation, cb) {
+    const originalStrLocation = strLocation;
     adapter.log.debug('firstDevLookup for ' + strLocation);
 
     request(strLocation, (error, response, body) => {
@@ -169,473 +168,479 @@ function firstDevLookup(strLocation) {
             adapter.log.debug('Positive answer for request of the XML file for ' + strLocation);
 
             try {
-                parseString(body, {
-                        explicitArray: true,
-                        mergeAttrs: true
-                    },
-                    (err, result) => {
-                        let path;
-                        let xmlDeviceType;
-                        let xmlTypeOfDevice;
-                        let xmlUDN;
-                        let xmlManufacturer;
+                parseString(body, {explicitArray: true, mergeAttrs: true}, (err, result) => {
+                    let path;
+                    let xmlDeviceType;
+                    let xmlTypeOfDevice;
+                    let xmlUDN;
+                    let xmlManufacturer;
 
-                        adapter.log.debug('Parsing the XML file for ' + strLocation);
+                    adapter.log.debug('Parsing the XML file for ' + strLocation);
 
-                        if (err) {
-                            adapter.log.warn('Error: ' + err);
+                    if (err) {
+                        adapter.log.warn('Error: ' + err);
+                    } else {
+                        adapter.log.debug('Creating objects for ' + strLocation);
+                        let i;
+
+                        if (!result || !result.root || !result.root.device) {
+                            adapter.log.debug('Error by parsing of ' + strLocation + ': Cannot find deviceType');
+                            return;
+                        }
+
+                        path = result.root.device[0];
+                        //Looking for deviceType of device
+                        try {
+                            xmlDeviceType = getValueFromArray(path.deviceType);
+                            xmlTypeOfDevice = xmlDeviceType.replace(/:\d/, '');
+                            xmlTypeOfDevice = xmlTypeOfDevice.replace(/.*:/, '');
+                            xmlTypeOfDevice = nameFilter(xmlTypeOfDevice);
+                            adapter.log.debug('TypeOfDevice ' + xmlTypeOfDevice);
+                        } catch (err) {
+                            adapter.log.debug(`Can not read deviceType of ${strLocation}`);
+                            xmlDeviceType = '';
+                        }
+
+                        //Looking for the port
+                        let strPort = strLocation.replace(/\bhttp:\/\/.*\d:/ig, '');
+                        strPort = strPort.replace(/\/.*/g, '');
+                        if (strPort.match(/http:/ig)) {
+                            strPort = '';
                         } else {
-                            adapter.log.debug('Creating objects for ' + strLocation);
-                            let i;
+                            strPort = parseInt(strPort, 10);
+                        }
 
-                            if (!result || !result.root || !result.root.device) {
-                                adapter.log.debug('Error by parsing of ' + strLocation + ': Cannot find deviceType');
-                                return;
+
+                        // Looking for the IP of a device
+                        strLocation = strLocation.replace(/http:\/\/|"/g, '').replace(/:\d*\/.*/ig, '');
+
+                        //Looking for UDN of a device
+                        try {
+                            xmlUDN = getValueFromArray(path.UDN).replace(/"/g, '').replace(/uuid:/g, '');
+                        } catch (err) {
+                            adapter.log.debug(`Can not read UDN of ${strLocation}`);
+                            xmlUDN = '';
+                        }
+
+                        //Looking for the manufacturer of a device
+                        try {
+                            xmlManufacturer = getValueFromArray(path.manufacturer).replace(/"/g, '');
+                        } catch (err) {
+                            adapter.log.debug('Can not read manufacturer of ' + strLocation);
+                            xmlManufacturer = '';
+                        }
+
+                        // Extract the path to the device icon that is delivered by the device
+                        // let i_icons = 0;
+                        let xmlIconURL;
+                        let xmlFN;
+                        let xmlManufacturerURL;
+                        let xmlModelNumber;
+                        let xmlModelDescription;
+                        let xmlModelName;
+                        let xmlModelURL;
+
+                        try {
+                            // i_icons = path.iconList[0].icon.length;
+                            xmlIconURL = getValueFromArray(path.iconList[0].icon[0].url).replace(/"/g, '');
+                        } catch (err) {
+                            adapter.log.debug(`Can not find a icon for ${strLocation}`);
+                            xmlIconURL = '';
+                        }
+
+                        //Looking for the friendlyName of a device
+                        try {
+                            xmlFN = nameFilter(getValueFromArray(path.friendlyName));
+                        } catch (err) {
+                            adapter.log.debug(`Can not read friendlyName of ${strLocation}`);
+                            xmlFN = 'Unknown';
+                        }
+
+                        //Looking for the manufacturerURL
+                        try {
+                            xmlManufacturerURL = getValueFromArray(path.manufacturerURL).replace(/"/g, '');
+                        } catch (err) {
+                            adapter.log.debug(`Can not read manufacturerURL of ${strLocation}`);
+                            xmlManufacturerURL = '';
+                        }
+
+                        //Looking for the modelNumber
+                        try {
+                            xmlModelNumber = getValueFromArray(path.modelNumber).replace(/"/g, '');
+                        } catch (err) {
+                            adapter.log.debug(`Can not read modelNumber of ${strLocation}`);
+                            xmlModelNumber = '';
+                        }
+
+                        //Looking for the modelDescription
+                        try {
+                            xmlModelDescription = getValueFromArray(path.modelDescription).replace(/"/g, '');
+                        } catch (err) {
+                            adapter.log.debug(`Can not read modelDescription of ${strLocation}`);
+                            xmlModelDescription = '';
+                        }
+
+                        //Looking for the modelName
+                        try {
+                            xmlModelName = getValueFromArray(path.modelName).replace(/"/g, '');
+                        } catch (err) {
+                            adapter.log.debug(`Can not read modelName of ${strLocation}`);
+                            xmlModelName = '';
+                        }
+
+                        //Looking for the modelURL
+                        try {
+                            xmlModelURL = getValueFromArray(path.modelURL).replace(/"/g, '');
+                        } catch (err) {
+                            adapter.log.debug(`Can not read modelURL of ${strLocation}`);
+                            xmlModelURL = '';
+                        }
+
+
+                        //START - Creating the root object of a device
+                        adapter.log.debug(`Creating root element for device: ${xmlFN}`);
+
+                        addTask({
+                            name: 'setObjectNotExists',
+                            id: `${xmlFN}.${xmlTypeOfDevice}`,
+                            obj: {
+                                type: 'device',
+                                common: {
+                                    name: xmlFN,
+                                    extIcon: `http://${strLocation}:${strPort}${xmlIconURL}`
+                                },
+                                native: {
+                                    ip: strLocation,
+                                    port: strPort,
+                                    uuid: xmlUDN,
+                                    deviceType: xmlDeviceType,
+                                    manufacturer: xmlManufacturer,
+                                    manufacturerURL: xmlManufacturerURL,
+                                    modelNumber: xmlModelNumber,
+                                    modelDescription: xmlModelDescription,
+                                    modelName: xmlModelName,
+                                    modelURL: xmlModelURL
+                                }
                             }
-
-                            path = result.root.device[0];
-                            //Looking for deviceType of device
-                            try {
-                                xmlDeviceType = getValueFromArray(path.deviceType);
-                                xmlTypeOfDevice = xmlDeviceType.replace(/:\d/, '');
-                                xmlTypeOfDevice = xmlTypeOfDevice.replace(/.*:/, '');
-                                xmlTypeOfDevice = nameFilter(xmlTypeOfDevice);
-                                adapter.log.debug('TypeOfDevice ' + xmlTypeOfDevice);
-                            } catch (err) {
-                                adapter.log.debug(`Can not read deviceType of ${strLocation}`);
-                                xmlDeviceType = '';
+                        });
+                        let pathRoot = result.root.device[0];
+                        let objectName = `${xmlFN}.${xmlTypeOfDevice}`;
+                        createServiceList(result, xmlFN, xmlTypeOfDevice, objectName, strLocation, strPort, pathRoot);
+                        addTask({
+                            name: 'setObjectNotExists', id: `${xmlFN}.${xmlTypeOfDevice}.Alive`, obj: {
+                                type: 'state',
+                                common: {
+                                    name: 'Alive',
+                                    type: 'boolean',
+                                    role: 'indicator.state',
+                                    read: true,
+                                    write: true
+                                },
+                                native: {}
                             }
-
-                            //Looking for the port
-                            let strPort = strLocation.replace(/\bhttp:\/\/.*\d:/ig, '');
-                            strPort = strPort.replace(/\/.*/ig, '');
-                            if (strPort.match(/http:/ig)) {
-                                strPort = '';
-                            }
+                        });
+                        //END - Creating the root object of a device
 
 
-                            //Looking for the IP of a device
-                            strLocation = strLocation.replace(/http:\/\//g, '');
-                            try {
-                                strLocation = strLocation.replace(/:\d*\/.*/ig, '');
-                            } catch (err) {
-                                strLocation = strLocation.replace(/\/\w.*/ig, '');
-                            }
+                        //START - Creating SubDevices list for a device
+                        let i_SubDevices = 0;
+                        let xmlfriendlyName;
 
-                            //Looking for UDN of a device
-                            try {
-                                xmlUDN = getValueFromArray(path.UDN).replace(/"/g, '').replace(/uuid:/g, '');
-                            } catch (err) {
-                                adapter.log.debug(`Can not read UDN of ${strLocation}`);
-                                xmlUDN = '';
-                            }
+                        if (path.deviceList && path.deviceList[0].device) {
+                            //Counting SubDevices
+                            i_SubDevices = path.deviceList[0].device.length;
 
-                            //Looking for the manufacturer of a device
-                            try {
-                                xmlManufacturer = getValueFromArray(path.manufacturer).replace(/"/g, '');
-                            } catch (err) {
-                                adapter.log.debug('Can not read manufacturer of ' + strLocation);
-                                xmlManufacturer = '';
-                            }
+                            if (i_SubDevices) {
+                                //adapter.log.debug('Found more than one SubDevice');
+                                for (i = i_SubDevices - 1; i >= 0; i--) {
 
-                            // Extract the path to the device icon that is delivered by the device
-                            // let i_icons = 0;
-                            let xmlIconURL;
-                            let xmlFN;
-                            let xmlManufacturerURL;
-                            let xmlModelNumber;
-                            let xmlModelDescription;
-                            let xmlModelName;
-                            let xmlModelURL;
-
-                            try {
-                                // i_icons = path.iconList[0].icon.length;
-                                xmlIconURL = getValueFromArray(path.iconList[0].icon[0].url).replace(/"/g, '');
-                            } catch (err) {
-                                adapter.log.debug(`Can not find a icon for ${strLocation}`);
-                                xmlIconURL = '';
-                            }
-
-                            //Looking for the friendlyName of a device
-                            try {
-                                xmlFN = nameFilter(getValueFromArray(path.friendlyName));
-                            } catch (err) {
-                                adapter.log.debug(`Can not read friendlyName of ${strLocation}`);
-                                xmlFN = 'Unknown';
-                            }
-
-                            //Looking for the manufacturerURL
-                            try {
-                                xmlManufacturerURL = getValueFromArray(path.manufacturerURL).replace(/"/g, '');
-                            } catch (err) {
-                                adapter.log.debug(`Can not read manufacturerURL of ${strLocation}`);
-                                xmlManufacturerURL = '';
-                            }
-
-                            //Looking for the modelNumber
-                            try {
-                                xmlModelNumber = getValueFromArray(path.modelNumber).replace(/"/g, '');
-                            } catch (err) {
-                                adapter.log.debug(`Can not read modelNumber of ${strLocation}`);
-                                xmlModelNumber = '';
-                            }
-
-                            //Looking for the modelDescription
-                            try {
-                                xmlModelDescription = getValueFromArray(path.modelDescription).replace(/"/g, '');
-                            } catch (err) {
-                                adapter.log.debug(`Can not read modelDescription of ${strLocation}`);
-                                xmlModelDescription = '';
-                            }
-
-                            //Looking for the modelName
-                            try {
-                                xmlModelName = getValueFromArray(path.modelName).replace(/"/g, '');
-                            } catch (err) {
-                                adapter.log.debug(`Can not read modelName of ${strLocation}`);
-                                xmlModelName = '';
-                            }
-
-                            //Looking for the modelURL
-                            try {
-                                xmlModelURL = getValueFromArray(path.modelURL).replace(/"/g, '');
-                            } catch (err) {
-                                adapter.log.debug(`Can not read modelURL of ${strLocation}`);
-                                xmlModelURL = '';
-                            }
-
-
-                            //START - Creating the root object of a device
-                            adapter.log.debug(`Creating root element for device: ${xmlFN}`);
-
-                            addTask({
-                                name: 'setObjectNotExists',
-                                id: `${xmlFN}.${xmlTypeOfDevice}`,
-                                obj: {
-                                    type: 'device',
-                                    common: {
-                                        name: xmlFN,
-                                        extIcon: `http://${strLocation}:${strPort}${xmlIconURL}`
-                                    },
-                                    native: {
-                                        ip: strLocation,
-                                        port: strPort,
-                                        uuid: xmlUDN,
-                                        deviceType: xmlDeviceType,
-                                        manufacturer: xmlManufacturer,
-                                        manufacturerURL: xmlManufacturerURL,
-                                        modelNumber: xmlModelNumber,
-                                        modelDescription: xmlModelDescription,
-                                        modelName: xmlModelName,
-                                        modelURL: xmlModelURL
+                                    //Looking for deviceType of device
+                                    try {
+                                        xmlDeviceType = getValueFromArray(path.deviceList[0].device[i].deviceType).replace(/"/g, '');
+                                        xmlTypeOfDevice = xmlDeviceType.replace(/:\d/, '');
+                                        xmlTypeOfDevice = xmlTypeOfDevice.replace(/.*:/, '');
+                                        xmlTypeOfDevice = nameFilter(xmlTypeOfDevice);
+                                        adapter.log.debug(`TypeOfDevice ${xmlTypeOfDevice}`);
+                                    } catch (err) {
+                                        adapter.log.debug(`Can not read deviceType of ${strLocation}`);
+                                        xmlDeviceType = '';
                                     }
-                                }
-                            });
-                            let pathRoot = result.root.device[0];
-                            let objectName = `${xmlFN}.${xmlTypeOfDevice}`;
-                            createServiceList(result, xmlFN, xmlTypeOfDevice, objectName, strLocation, strPort, pathRoot);
-                            addTask({
-                                name: 'setObjectNotExists', id: `${xmlFN}.${xmlTypeOfDevice}.Alive`, obj: {
-                                    type: 'state',
-                                    common: {
-                                        name: 'Alive',
-                                        type: 'boolean',
-                                        role: 'indicator.state',
-                                        read: true,
-                                        write: true
-                                    },
-                                    native: {}
-                                }
-                            });
-                            //END - Creating the root object of a device
 
+                                    //Looking for the friendlyName of the SubDevice
+                                    try {
+                                        xmlfriendlyName = getValueFromArray(path.deviceList[0].device[i].friendlyName);
+                                        xmlFN = nameFilter(xmlfriendlyName);
+                                    } catch (err) {
+                                        adapter.log.debug(`Can not read friendlyName of SubDevice from ${xmlFN}`);
+                                        xmlfriendlyName = 'Unknown';
+                                    }
+                                    //Looking for the manufacturer of a device
+                                    try {
+                                        xmlManufacturer = getValueFromArray(path.deviceList[0].device[i].manufacturer).replace(/"/g, '');
+                                    } catch (err) {
+                                        adapter.log.debug(`Can not read manufacturer of ${xmlfriendlyName}`);
+                                        xmlManufacturer = '';
+                                    }
+                                    //Looking for the manufacturerURL
+                                    try {
+                                        xmlManufacturerURL = getValueFromArray(path.deviceList[0].device[i].manufacturerURL);
+                                    } catch (err) {
+                                        adapter.log.debug(`Can not read manufacturerURL of ${xmlfriendlyName}`);
+                                        xmlManufacturerURL = '';
+                                    }
+                                    //Looking for the modelNumber
+                                    try {
+                                        xmlModelNumber = getValueFromArray(path.deviceList[0].device[i].modelNumber);
+                                    } catch (err) {
+                                        adapter.log.debug(`Can not read modelNumber of ${xmlfriendlyName}`);
+                                        xmlModelNumber = '';
+                                    }
+                                    //Looking for the modelDescription
+                                    try {
+                                        xmlModelDescription = getValueFromArray(path.deviceList[0].device[i].modelDescription);
+                                    } catch (err) {
+                                        adapter.log.debug(`Can not read modelDescription of ${xmlfriendlyName}`);
+                                        xmlModelDescription = '';
+                                    }
+                                    //Looking for deviceType of device
+                                    try {
+                                        xmlDeviceType = getValueFromArray(path.deviceList[0].device[i].deviceType);
+                                    } catch (err) {
+                                        adapter.log.debug(`Can not read DeviceType of ${xmlfriendlyName}`);
+                                        xmlDeviceType = '';
+                                    }
+                                    //Looking for the modelName
+                                    try {
+                                        xmlModelName = getValueFromArray(path.deviceList[0].device[i].modelName);
+                                    } catch (err) {
+                                        adapter.log.debug(`Can not read modelName of ${xmlfriendlyName}`);
+                                        xmlModelName = '';
+                                    }
+                                    //Looking for the modelURL
+                                    try {
+                                        xmlModelURL = path.deviceList[0].device[i].modelURL;
+                                    } catch (err) {
+                                        adapter.log.debug(`Can not read modelURL of ${xmlfriendlyName}`);
+                                        xmlModelURL = '';
+                                    }
+                                    //Looking for UDN of a device
+                                    try {
+                                        xmlUDN = getValueFromArray(path.deviceList[0].device[i].UDN)
+                                            .replace(/"/g, '')
+                                            .replace(/uuid:/g, '');
+                                    } catch (err) {
+                                        adapter.log.debug(`Can not read UDN of ${xmlfriendlyName}`);
+                                        xmlUDN = '';
+                                    }
 
-                            //START - Creating SubDevices list for a device
-                            let i_SubDevices = 0;
-                            let xmlfriendlyName;
+                                    //The SubDevice object
+                                    addTask({
+                                        name: 'setObjectNotExists', id: `${xmlFN}.${xmlTypeOfDevice}`, obj: {
+                                            type: 'device',
+                                            common: {
+                                                name: xmlfriendlyName
+                                            },
+                                            native: {
+                                                ip: strLocation,
+                                                port: strPort,
+                                                uuid: xmlUDN,
+                                                deviceType: xmlDeviceType.toString(),
+                                                manufacturer: xmlManufacturer.toString(),
+                                                manufacturerURL: xmlManufacturerURL.toString(),
+                                                modelNumber: xmlModelNumber.toString(),
+                                                modelDescription: xmlModelDescription.toString(),
+                                                modelName: xmlModelName.toString(),
+                                                modelURL: xmlModelURL.toString()
+                                            }
+                                        }
+                                    }); //END SubDevice Object
+                                    let pathSub = result.root.device[0].deviceList[0].device[i];
+                                    let objectNameSub = `${xmlFN}.${xmlTypeOfDevice}`;
+                                    createServiceList(result, xmlFN, xmlTypeOfDevice, objectNameSub, strLocation, strPort, pathSub);
+                                    addTask({
+                                        name: 'setObjectNotExists', id: `${xmlFN}.${xmlTypeOfDevice}.Alive`, obj: {
+                                            type: 'state',
+                                            common: {
+                                                name: 'Alive',
+                                                type: 'boolean',
+                                                role: 'indicator.state',
+                                                read: true,
+                                                write: true
+                                            },
+                                            native: {}
+                                        }
+                                    });
+                                    let TypeOfSubDevice = xmlTypeOfDevice;
 
-                            if (path.deviceList && path.deviceList[0].device) {
-                                //Counting SubDevices
-                                i_SubDevices = path.deviceList[0].device.length;
+                                    //START - Creating SubDevices list for a sub-device
+                                    if (path.deviceList[0].device[i].deviceList && path.deviceList[0].device[i].deviceList[0].device) {
+                                        //Counting SubDevices
+                                        let i_SubSubDevices = path.deviceList[0].device[i].deviceList[0].device.length;
+                                        let i2;
 
-                                if (i_SubDevices) {
-                                    //adapter.log.debug('Found more than one SubDevice');
-                                    for (i = i_SubDevices - 1; i >= 0; i--) {
+                                        if (i_SubSubDevices) {
+                                            for (i2 = i_SubSubDevices - 1; i2 >= 0; i--) {
 
-                                        //Looking for deviceType of device
-                                        try {
-                                            xmlDeviceType = getValueFromArray(path.deviceList[0].device[i].deviceType).replace(/"/g, '');
-                                            xmlTypeOfDevice = xmlDeviceType.replace(/:\d/, '');
-                                            xmlTypeOfDevice = xmlTypeOfDevice.replace(/.*:/, '');
-                                            xmlTypeOfDevice = nameFilter(xmlTypeOfDevice);
-                                            adapter.log.debug(`TypeOfDevice ${xmlTypeOfDevice}`);
-                                        } catch (err) {
-                                            adapter.log.debug(`Can not read deviceType of ${strLocation}`);
-                                            xmlDeviceType = '';
-                                        }
+                                                adapter.log.debug(`Device ${i2} ` + path.deviceList[0].device[i].deviceList[0].device[i2].friendlyName);
 
-                                        //Looking for the friendlyName of the SubDevice
-                                        try {
-                                            xmlfriendlyName = getValueFromArray(path.deviceList[0].device[i].friendlyName);
-                                            xmlFN = nameFilter(xmlfriendlyName);
-                                        } catch (err) {
-                                            adapter.log.debug(`Can not read friendlyName of SubDevice from ${xmlFN}`);
-                                            xmlfriendlyName = 'Unknown';
-                                        }
-                                        //Looking for the manufacturer of a device
-                                        try {
-                                            xmlManufacturer = getValueFromArray(path.deviceList[0].device[i].manufacturer).replace(/"/g, '');
-                                        } catch (err) {
-                                            adapter.log.debug(`Can not read manufacturer of ${xmlfriendlyName}`);
-                                            xmlManufacturer = '';
-                                        }
-                                        //Looking for the manufacturerURL
-                                        try {
-                                            xmlManufacturerURL = getValueFromArray(path.deviceList[0].device[i].manufacturerURL);
-                                        } catch (err) {
-                                            adapter.log.debug(`Can not read manufacturerURL of ${xmlfriendlyName}`);
-                                            xmlManufacturerURL = '';
-                                        }
-                                        //Looking for the modelNumber
-                                        try {
-                                            xmlModelNumber = getValueFromArray(path.deviceList[0].device[i].modelNumber);
-                                        } catch (err) {
-                                            adapter.log.debug(`Can not read modelNumber of ${xmlfriendlyName}`);
-                                            xmlModelNumber = '';
-                                        }
-                                        //Looking for the modelDescription
-                                        try {
-                                            xmlModelDescription = getValueFromArray(path.deviceList[0].device[i].modelDescription);
-                                        } catch (err) {
-                                            adapter.log.debug(`Can not read modelDescription of ${xmlfriendlyName}`);
-                                            xmlModelDescription = '';
-                                        }
-                                        //Looking for deviceType of device
-                                        try {
-                                            xmlDeviceType = getValueFromArray(path.deviceList[0].device[i].deviceType);
-                                        } catch (err) {
-                                            adapter.log.debug(`Can not read DeviceType of ${xmlfriendlyName}`);
-                                            xmlDeviceType = '';
-                                        }
-                                        //Looking for the modelName
-                                        try {
-                                            xmlModelName = getValueFromArray(path.deviceList[0].device[i].modelName);
-                                        } catch (err) {
-                                            adapter.log.debug(`Can not read modelName of ${xmlfriendlyName}`);
-                                            xmlModelName = '';
-                                        }
-                                        //Looking for the modelURL
-                                        try {
-                                            xmlModelURL = path.deviceList[0].device[i].modelURL;
-                                        } catch (err) {
-                                            adapter.log.debug(`Can not read modelURL of ${xmlfriendlyName}`);
-                                            xmlModelURL = '';
-                                        }
-                                        //Looking for UDN of a device
-                                        try {
-                                            xmlUDN = getValueFromArray(path.deviceList[0].device[i].UDN)
-                                                .replace(/"/g, '')
-                                                .replace(/uuid:/g, '');
-                                        } catch (err) {
-                                            adapter.log.debug(`Can not read UDN of ${xmlfriendlyName}`);
-                                            xmlUDN = '';
-                                        }
-
-                                        //The SubDevice object
-                                        addTask({
-                                            name: 'setObjectNotExists', id: `${xmlFN}.${xmlTypeOfDevice}`, obj: {
-                                                type: 'device',
-                                                common: {
-                                                    name: xmlfriendlyName
-                                                },
-                                                native: {
-                                                    ip: strLocation,
-                                                    port: strPort,
-                                                    uuid: xmlUDN,
-                                                    deviceType: xmlDeviceType.toString(),
-                                                    manufacturer: xmlManufacturer.toString(),
-                                                    manufacturerURL: xmlManufacturerURL.toString(),
-                                                    modelNumber: xmlModelNumber.toString(),
-                                                    modelDescription: xmlModelDescription.toString(),
-                                                    modelName: xmlModelName.toString(),
-                                                    modelURL: xmlModelURL.toString()
+                                                //Looking for deviceType of device
+                                                try {
+                                                    xmlDeviceType = getValueFromArray(path.deviceList[0].device[i].deviceList[0].device[i2].deviceType).replace(/"/g, '');
+                                                    xmlTypeOfDevice = xmlDeviceType
+                                                        .replace(/:\d/, '')
+                                                        .replace(/.*:/, '');
+                                                    xmlTypeOfDevice = nameFilter(xmlTypeOfDevice);
+                                                    adapter.log.debug(`TypeOfDevice ${xmlTypeOfDevice}`);
+                                                } catch (err) {
+                                                    adapter.log.debug(`Can not read deviceType of ${strLocation}`);
+                                                    xmlDeviceType = '';
                                                 }
-                                            }
-                                        }); //END SubDevice Object
-                                        let pathSub = result.root.device[0].deviceList[0].device[i];
-                                        let objectNameSub = `${xmlFN}.${xmlTypeOfDevice}`;
-                                        createServiceList(result, xmlFN, xmlTypeOfDevice, objectNameSub, strLocation, strPort, pathSub);
-                                        addTask({
-                                            name: 'setObjectNotExists', id: `${xmlFN}.${xmlTypeOfDevice}.Alive`, obj: {
-                                                type: 'state',
-                                                common: {
-                                                    name: 'Alive',
-                                                    type: 'boolean',
-                                                    role: 'indicator.state',
-                                                    read: true,
-                                                    write: true
-                                                },
-                                                native: {}
-                                            }
-                                        });
-                                        let TypeOfSubDevice = xmlTypeOfDevice;
 
-                                        //START - Creating SubDevices list for a sub-device
-                                        if (path.deviceList[0].device[i].deviceList && path.deviceList[0].device[i].deviceList[0].device) {
-                                            //Counting SubDevices
-                                            let i_SubSubDevices = path.deviceList[0].device[i].deviceList[0].device.length;
-                                            let i2;
+                                                //Looking for the friendlyName of the SubDevice
+                                                try {
+                                                    xmlfriendlyName = getValueFromArray(path.deviceList[0].device[i].deviceList[0].device[i2].friendlyName);
+                                                    xmlFN = nameFilter(xmlfriendlyName);
+                                                } catch (err) {
+                                                    adapter.log.debug(`Can not read friendlyName of SubDevice from ${xmlFN}`);
+                                                    xmlfriendlyName = 'Unknown';
+                                                }
+                                                //Looking for the manufacturer of a device
+                                                try {
+                                                    xmlManufacturer = getValueFromArray(path.deviceList[0].device[i].deviceList[0].device[i2].manufacturer).replace(/"/g, '');
+                                                } catch (err) {
+                                                    adapter.log.debug(`Can not read manufacturer of ${xmlfriendlyName}`);
+                                                    xmlManufacturer = '';
+                                                }
+                                                //Looking for the manufacturerURL
+                                                try {
+                                                    xmlManufacturerURL = getValueFromArray(path.deviceList[0].device[i].deviceList[0].device[i2].manufacturerURL);
+                                                } catch (err) {
+                                                    adapter.log.debug(`Can not read manufacturerURL of ${xmlfriendlyName}`);
+                                                    xmlManufacturerURL = '';
+                                                }
+                                                //Looking for the modelNumber
+                                                try {
+                                                    xmlModelNumber = getValueFromArray(path.deviceList[0].device[i].deviceList[0].device[i2].modelNumber);
+                                                } catch (err) {
+                                                    adapter.log.debug(`Can not read modelNumber of ${xmlfriendlyName}`);
+                                                    xmlModelNumber = '';
+                                                }
+                                                //Looking for the modelDescription
+                                                try {
+                                                    xmlModelDescription = getValueFromArray(path.deviceList[0].device[i].deviceList[0].device[i2].modelDescription);
+                                                } catch (err) {
+                                                    adapter.log.debug(`Can not read modelDescription of ${xmlfriendlyName}`);
+                                                    xmlModelDescription = '';
+                                                }
+                                                //Looking for deviceType of device
+                                                try {
+                                                    xmlDeviceType = getValueFromArray(path.deviceList[0].device[i].deviceList[0].device[i2].deviceType);
+                                                } catch (err) {
+                                                    adapter.log.debug('Can not read DeviceType of ' + xmlfriendlyName);
+                                                    xmlDeviceType = '';
+                                                }
+                                                //Looking for the modelName
+                                                try {
+                                                    xmlModelName = getValueFromArray(path.deviceList[0].device[i].deviceList[0].device[i2].modelName);
+                                                } catch (err) {
+                                                    adapter.log.debug(`Can not read DeviceType of ${xmlfriendlyName}`);
+                                                    xmlModelName = '';
+                                                }
+                                                //Looking for the modelURL
+                                                try {
+                                                    xmlModelURL = getValueFromArray(path.deviceList[0].device[i].deviceList[0].device[i2].modelURL);
+                                                } catch (err) {
+                                                    adapter.log.debug(`Can not read modelURL of ${xmlfriendlyName}`);
+                                                    xmlModelURL = '';
+                                                }
+                                                //Looking for UDN of a device
+                                                try {
+                                                    xmlUDN = getValueFromArray(path.deviceList[0].device[i].deviceList[0].device[i2].UDN)
+                                                        .replace(/"/g, '')
+                                                        .replace(/uuid:/g, '');
+                                                } catch (err) {
+                                                    adapter.log.debug(`Can not read UDN of ${xmlfriendlyName}`);
+                                                    xmlUDN = '';
+                                                }
 
-                                            if (i_SubSubDevices) {
-                                                for (i2 = i_SubSubDevices - 1; i2 >= 0; i--) {
-
-                                                    adapter.log.debug(`Device ${i2} ` + path.deviceList[0].device[i].deviceList[0].device[i2].friendlyName);
-
-                                                    //Looking for deviceType of device
-                                                    try {
-                                                        xmlDeviceType = getValueFromArray(path.deviceList[0].device[i].deviceList[0].device[i2].deviceType).replace(/"/g, '');
-                                                        xmlTypeOfDevice = xmlDeviceType
-                                                            .replace(/:\d/, '')
-                                                            .replace(/.*:/, '');
-                                                        xmlTypeOfDevice = nameFilter(xmlTypeOfDevice);
-                                                        adapter.log.debug(`TypeOfDevice ${xmlTypeOfDevice}`);
-                                                    } catch (err) {
-                                                        adapter.log.debug(`Can not read deviceType of ${strLocation}`);
-                                                        xmlDeviceType = '';
-                                                    }
-
-                                                    //Looking for the friendlyName of the SubDevice
-                                                    try {
-                                                        xmlfriendlyName = getValueFromArray(path.deviceList[0].device[i].deviceList[0].device[i2].friendlyName);
-                                                        xmlFN = nameFilter(xmlfriendlyName);
-                                                    } catch (err) {
-                                                        adapter.log.debug(`Can not read friendlyName of SubDevice from ${xmlFN}`);
-                                                        xmlfriendlyName = 'Unknown';
-                                                    }
-                                                    //Looking for the manufacturer of a device
-                                                    try {
-                                                        xmlManufacturer = getValueFromArray(path.deviceList[0].device[i].deviceList[0].device[i2].manufacturer).replace(/"/g, '');
-                                                    } catch (err) {
-                                                        adapter.log.debug(`Can not read manufacturer of ${xmlfriendlyName}`);
-                                                        xmlManufacturer = '';
-                                                    }
-                                                    //Looking for the manufacturerURL
-                                                    try {
-                                                        xmlManufacturerURL = getValueFromArray(path.deviceList[0].device[i].deviceList[0].device[i2].manufacturerURL);
-                                                    } catch (err) {
-                                                        adapter.log.debug(`Can not read manufacturerURL of ${xmlfriendlyName}`);
-                                                        xmlManufacturerURL = '';
-                                                    }
-                                                    //Looking for the modelNumber
-                                                    try {
-                                                        xmlModelNumber = getValueFromArray(path.deviceList[0].device[i].deviceList[0].device[i2].modelNumber);
-                                                    } catch (err) {
-                                                        adapter.log.debug(`Can not read modelNumber of ${xmlfriendlyName}`);
-                                                        xmlModelNumber = '';
-                                                    }
-                                                    //Looking for the modelDescription
-                                                    try {
-                                                        xmlModelDescription = getValueFromArray(path.deviceList[0].device[i].deviceList[0].device[i2].modelDescription);
-                                                    } catch (err) {
-                                                        adapter.log.debug(`Can not read modelDescription of ${xmlfriendlyName}`);
-                                                        xmlModelDescription = '';
-                                                    }
-                                                    //Looking for deviceType of device
-                                                    try {
-                                                        xmlDeviceType = getValueFromArray(path.deviceList[0].device[i].deviceList[0].device[i2].deviceType);
-                                                    } catch (err) {
-                                                        adapter.log.debug('Can not read DeviceType of ' + xmlfriendlyName);
-                                                        xmlDeviceType = '';
-                                                    }
-                                                    //Looking for the modelName
-                                                    try {
-                                                        xmlModelName = getValueFromArray(path.deviceList[0].device[i].deviceList[0].device[i2].modelName);
-                                                    } catch (err) {
-                                                        adapter.log.debug(`Can not read DeviceType of ${xmlfriendlyName}`);
-                                                        xmlModelName = '';
-                                                    }
-                                                    //Looking for the modelURL
-                                                    try {
-                                                        xmlModelURL = getValueFromArray(path.deviceList[0].device[i].deviceList[0].device[i2].modelURL);
-                                                    } catch (err) {
-                                                        adapter.log.debug(`Can not read modelURL of ${xmlfriendlyName}`);
-                                                        xmlModelURL = '';
-                                                    }
-                                                    //Looking for UDN of a device
-                                                    try {
-                                                        xmlUDN = getValueFromArray(path.deviceList[0].device[i].deviceList[0].device[i2].UDN)
-                                                            .replace(/"/g, '')
-                                                            .replace(/uuid:/g, '');
-                                                    } catch (err) {
-                                                        adapter.log.debug(`Can not read UDN of ${xmlfriendlyName}`);
-                                                        xmlUDN = '';
-                                                    }
-
-                                                    //The SubDevice object
-                                                    addTask({
-                                                        name: 'setObjectNotExists',
-                                                        id: `${xmlFN}.${TypeOfSubDevice}.${xmlTypeOfDevice}`,
-                                                        obj: {
-                                                            type: 'device',
-                                                            common: {
-                                                                name: xmlfriendlyName
-                                                            },
-                                                            native: {
-                                                                ip: strLocation,
-                                                                port: strPort,
-                                                                uuid: xmlUDN,
-                                                                deviceType: xmlDeviceType.toString(),
-                                                                manufacturer: xmlManufacturer.toString(),
-                                                                manufacturerURL: xmlManufacturerURL.toString(),
-                                                                modelNumber: xmlModelNumber.toString(),
-                                                                modelDescription: xmlModelDescription.toString(),
-                                                                modelName: xmlModelName.toString(),
-                                                                modelURL: xmlModelURL.toString()
-                                                            }
+                                                //The SubDevice object
+                                                addTask({
+                                                    name: 'setObjectNotExists',
+                                                    id: `${xmlFN}.${TypeOfSubDevice}.${xmlTypeOfDevice}`,
+                                                    obj: {
+                                                        type: 'device',
+                                                        common: {
+                                                            name: xmlfriendlyName
+                                                        },
+                                                        native: {
+                                                            ip: strLocation,
+                                                            port: strPort,
+                                                            uuid: xmlUDN,
+                                                            deviceType: xmlDeviceType.toString(),
+                                                            manufacturer: xmlManufacturer.toString(),
+                                                            manufacturerURL: xmlManufacturerURL.toString(),
+                                                            modelNumber: xmlModelNumber.toString(),
+                                                            modelDescription: xmlModelDescription.toString(),
+                                                            modelName: xmlModelName.toString(),
+                                                            modelURL: xmlModelURL.toString()
                                                         }
-                                                    }); //END SubDevice Object
-                                                    pathSub = result.root.device[0].deviceList[0].device[i].deviceList[0].device[i2];
-                                                    objectNameSub = `${xmlFN}.${TypeOfSubDevice}.${xmlTypeOfDevice}`;
-                                                    createServiceList(result, xmlFN, `${TypeOfSubDevice}.${xmlTypeOfDevice}`, objectNameSub, strLocation, strPort, pathSub);
-                                                    addTask({
-                                                        name: 'setObjectNotExists',
-                                                        id: `${xmlFN}.${TypeOfSubDevice}.${xmlTypeOfDevice}.Alive`,
-                                                        obj: {
-                                                            type: 'state',
-                                                            common: {
-                                                                name: 'Alive',
-                                                                type: 'boolean',
-                                                                role: 'indicator.state',
-                                                                read: true,
-                                                                write: true
-                                                            },
-                                                            native: {}
-                                                        }
-                                                    });
-                                                } //END for
-                                            }//END if
-                                        } //END if
-                                        //END - Creating SubDevices list for a sub-device
+                                                    }
+                                                }); //END SubDevice Object
+                                                pathSub = result.root.device[0].deviceList[0].device[i].deviceList[0].device[i2];
+                                                objectNameSub = `${xmlFN}.${TypeOfSubDevice}.${xmlTypeOfDevice}`;
+                                                createServiceList(result, xmlFN, `${TypeOfSubDevice}.${xmlTypeOfDevice}`, objectNameSub, strLocation, strPort, pathSub);
+                                                addTask({
+                                                    name: 'setObjectNotExists',
+                                                    id: `${xmlFN}.${TypeOfSubDevice}.${xmlTypeOfDevice}.Alive`,
+                                                    obj: {
+                                                        type: 'state',
+                                                        common: {
+                                                            name: 'Alive',
+                                                            type: 'boolean',
+                                                            role: 'indicator.state',
+                                                            read: true,
+                                                            write: true
+                                                        },
+                                                        native: {}
+                                                    }
+                                                });
+                                            } //END for
+                                        }//END if
+                                    } //END if
+                                    //END - Creating SubDevices list for a sub-device
+                                } //END for
+                            }//END if
+                        } //END if
+                        //END - Creating SubDevices list for a device
+                    }//END else
 
-                                    } //END for
-                                }//END if
-                            } //END if
-                            //END - Creating SubDevices list for a device
-
-                        }//END else
-
-                        processTasks();
-                    }
-                );
+                    // remove device from processed list
+                    const pos = discoveredDevices.indexOf(originalStrLocation);
+                    pos !== -1 && discoveredDevices.splice(pos, 1);
+                    processTasks();
+                    cb && cb();
+                });
             } catch (error) {
                 adapter.log.debug(`Cannot parse answer from ${strLocation}: ${error}`);
+                // remove device from processed list
+                const pos = discoveredDevices.indexOf(originalStrLocation);
+                pos !== -1 && discoveredDevices.splice(pos, 1);
+                cb && cb();
             }
+        } else {
+            // remove device from processed list
+            const pos = discoveredDevices.indexOf(originalStrLocation);
+            pos !== -1 && discoveredDevices.splice(pos, 1);
+            cb && cb();
         }
-        if (adapter.config.enableSimplePlayerControls) {
-            setTimeout(() => player.createPlayerStates(), 5000)
+
+        if (adapter.config.enableSimplePlayerControls && !playerTimer) {
+            playerTimer = setTimeout(() => {
+                playerTimer = null;
+                player.createPlayerStates();
+            }, 5000);
         }
     });
-    return true;
 }
 
 //END Reading the xml device description file of each upnp device
@@ -770,7 +775,7 @@ function readSCPD(SCPDlocation, service, cb) {
                         createServiceStateTable(result, service);
                         createActionList(result, service);
                         processTasks();
-                        cb && cb();
+                        cb();
                     }
                 }); //END function
             } catch (error) {
@@ -787,110 +792,98 @@ function readSCPD(SCPDlocation, service, cb) {
 
 //START Creating serviceStateTable
 function createServiceStateTable(result, service) {
-    let i_stateVariable = 0;
-    let i2 = 0;
+    let iStateVarLength = 0;
     let path;
-    let stateVariableAttr;
     let xmlName;
     let xmlDataType;
-    let xmlAllowedValue;
-    let strAllowedValues;
-    let strDefaultValue;
-    let strMinimum;
-    let strMaximum;
-    let strStep;
 
     try {
         path = result.scpd.serviceStateTable[0];
     } catch (err) {
-        path = result.scpd.serviceStateTable
+        path = result.scpd.serviceStateTable;
     }
 
+
     try {
-        i_stateVariable = path.stateVariable.length;
+        iStateVarLength = path.stateVariable.length;
     } catch (err) {
-        i_stateVariable = 1;
+        iStateVarLength = 1;
     }
 
     //Counting stateVariable's
-    //adapter.log.debug('Number of stateVariables: ' + i_stateVariable);
+    //adapter.log.debug('Number of stateVariables: ' + iStateVarLength);
     try {
-        for (i2 = i_stateVariable - 1; i2 >= 0; i2--) {
-            stateVariableAttr = undefined;
-            strAllowedValues = '';
-            strMinimum = undefined;
-            strMaximum = undefined;
-            strStep = undefined;
+        for (let i2 = iStateVarLength - 1; i2 >= 0; i2--) {
+            let stateVariableAttr;
+            let strAllowedValues = [];
+            let strMinimum;
+            let strMaximum;
+            let strDefaultValue;
+            let strStep;
 
             stateVariableAttr = path.stateVariable[i2]['$'].sendEvents;
             xmlName = getValueFromArray(path.stateVariable[i2].name);
             xmlDataType = getValueFromArray(path.stateVariable[i2].dataType);
 
             try {
-                for (xmlAllowedValue in path.stateVariable[i2].allowedValueList[0].allowedValue) {
-                    let numberOfValue = xmlAllowedValue;
-                    xmlAllowedValue = path.stateVariable[i2].allowedValueList[0].allowedValue[numberOfValue];
-                    strAllowedValues = `${strAllowedValues}${xmlAllowedValue} `;
+                let allowed = path.stateVariable[i2].allowedValueList[0].allowedValue;
+                strAllowedValues = Object.keys(allowed).map(xmlAllowedValue => allowed[xmlAllowedValue]).join(' ');
+            } catch (err) {
+            }
+
+            try {
+                strDefaultValue = getValueFromArray(path.stateVariable[i2].defaultValue);
+            } catch (err) {
+            }
+
+            if (path.stateVariable[i2].allowedValueRange) {
+                try {
+                    strMinimum = getValueFromArray(path.stateVariable[i2].allowedValueRange[0].minimum);
+                } catch (err) {
                 }
-            } catch (err) {
+
+                try {
+                    strMaximum = getValueFromArray(path.stateVariable[i2].allowedValueRange[0].maximum);
+                } catch (err) {
+                }
+                try {
+                    strStep = getValueFromArray(path.stateVariable[i2].allowedValueRange[0].step);
+                } catch (err) {
+                }
             }
 
-            try {
-                xmlAllowedValue = getValueFromArray(path.stateVariable[i2].defaultValue).replace(/"/g, '');
-            } catch (err) {
+            //Handles DataType ui2 as Number
+            let dataType;
+            if (xmlDataType.toString() === 'ui2') {
+                dataType = 'number';
+            } else {
+                dataType = xmlDataType.toString();
             }
-
-            try {
-                strMinimum = getValueFromArray(path.stateVariable[i2].allowedValueRange[0].minimum);
-            } catch (err) {
+            if (typeof xmlName === 'object' && xmlName[0]) {
+                xmlName = xmlName[0];
             }
-
-            try {
-                strMaximum = getValueFromArray(path.stateVariable[i2].allowedValueRange[0].maximum);
-            } catch (err) {
-            }
-            try {
-                strStep = getValueFromArray(path.stateVariable[i2].allowedValueRange[0].step);
-            } catch (err) {
-            }
-
-            createService();
+            addTask({
+                name: 'setObjectNotExists', id: `${service}.${xmlName}`, obj: {
+                    type: 'state',
+                    common: {
+                        name: xmlName.toString(),
+                        type: dataType,
+                        role: 'indicator.state',
+                        read: true
+                    },
+                    native: {
+                        sendEvents: stateVariableAttr,
+                        allowedValues: strAllowedValues,
+                        defaultValue: strDefaultValue,
+                        minimum: strMinimum,
+                        maximum: strMaximum,
+                        step: strStep,
+                    }
+                }
+            });
         }//END for
     } catch (err) {
     }
-
-    function createService() {
-        //Handles DataType ui2 as Number
-        let dataType;
-        if (xmlDataType.toString() === 'ui2') {
-            dataType = 'number';
-        } else {
-            dataType = xmlDataType.toString();
-        }
-        if (typeof xmlName === 'object' && xmlName[0]) {
-            xmlName = xmlName[0];
-        }
-        addTask({
-            name: 'setObjectNotExists', id: `${service}.${xmlName}`, obj: {
-                type: 'state',
-                common: {
-                    name: xmlName.toString(),
-                    type: dataType,
-                    role: 'indicator.state',
-                    read: true
-                },
-                native: {
-                    sendEvents: stateVariableAttr,
-                    allowedValues: strAllowedValues,
-                    defaultValue: strDefaultValue,
-                    minimum: strMinimum,
-                    maximum: strMaximum,
-                    step: strStep,
-                }
-            }
-        });
-    }
-
     //END Add serviceList for SubDevice
 
 } //END function
@@ -926,7 +919,9 @@ function createActionList(result, service) {
 
     function createAction() {
         addTask({
-            name: 'setObjectNotExists', id: `${service}.${xmlName}`, obj: {
+            name: 'setObjectNotExists',
+            id: `${service}.${xmlName}`,
+            obj: {
                 type: 'state',
                 common: {
                     name: xmlName,
@@ -955,9 +950,6 @@ function createActionList(result, service) {
 //START Creating argumentList
 function createArgumentList(result, service, actionName, action_number, path) {
     let iLen = 0;
-    let xmlName;
-    let xmlDirection;
-    let xmlRelStateVar;
 
     //adapter.log.debug('Reading argumentList for ' + actionName);
 
@@ -970,26 +962,27 @@ function createArgumentList(result, service, actionName, action_number, path) {
 
     if (iLen) {
         for (let i2 = iLen - 1; i2 >= 0; i2--) {
+            let xmlName = 'Unknown';
+            let xmlDirection = '';
+            let xmlRelStateVar = '';
+
             if (path.action[action_number].argumentList) {
                 try {
                     xmlName = getValueFromArray(path.action[action_number].argumentList[0].argument[i2].name);
                 } catch (err) {
                     adapter.log.debug(`Can not read argument "name" of ${actionName}`);
-                    xmlName = 'Unknown';
                 }
 
                 try {
                     xmlDirection = getValueFromArray(path.action[action_number].argumentList[0].argument[i2].direction);
                 } catch (err) {
                     adapter.log.debug(`Can not read direction of ${actionName}`);
-                    xmlDirection = '';
                 }
 
                 try {
                     xmlRelStateVar = getValueFromArray(path.action[action_number].argumentList[0].argument[i2].relatedStateVariable);
                 } catch (err) {
                     adapter.log.debug(`Can not read relatedStateVariable of ${actionName}`);
-                    xmlRelStateVar = '';
                 }
             }
             addTask({
@@ -1037,28 +1030,30 @@ function _processTasks() {
         clearInterval(showTimer);
     } else {
         const task = tasks.shift();
+        if (task.name === 'firstDevLookup') {
+            firstDevLookup(task.location, () => setTimeout(_processTasks, 0));
+        } else
         if (task.name === 'setState') {
             adapter.setState(task.id, task.state, err => {
                 if (typeof task.cb === 'function') {
-                    task.cb(() => setImmediate(_processTasks));
+                    task.cb(() => setTimeout(_processTasks, 0));
                 } else {
-                    setImmediate(_processTasks);
+                    setTimeout(_processTasks, 0);
                 }
             });
         } else if (task.name === 'valChannel') {
             valChannel(task.strState, task.serviceID, () => {
-                writeState(task.serviceID, task.stateName, task.val, () => {
-                    setImmediate(_processTasks);
-                });
+                writeState(task.serviceID, task.stateName, task.val, () =>
+                    setTimeout(_processTasks, 0));
             });
 
         } else if (task.name === 'readSCPD') {
-            readSCPD(task.SCPDlocation, task.service, () => setImmediate(_processTasks));
+            readSCPD(task.SCPDlocation, task.service, () => setTimeout(_processTasks, 0));
         } else if (task.name === 'setObjectNotExists') {
-            adapter.setObjectNotExists(task.id, task.obj, () => setImmediate(_processTasks));
+            adapter.setObjectNotExists(task.id, task.obj, () => setTimeout(_processTasks, 0));
         } else {
             adapter.log.warn('Unknown task: ' + task.name);
-            setImmediate(_processTasks);
+            setTimeout(_processTasks, 0);
         }
     }
 }
@@ -1073,6 +1068,7 @@ let server = new Server({ssdpIp: '239.255.255.250'});
 //at this time there is no implementation of upnp service capabilities, it is only necessary for the server to run
 server.addUSN('upnp:rootdevice');
 server.addUSN('urn:schemas-upnp-org:device:IoTManagementandControlDevice:1');
+let discoveredDevices = [];
 
 server.on('advertise-alive', headers => {
     let usn = getValueFromArray(headers['USN'])
@@ -1109,9 +1105,10 @@ server.on('advertise-alive', headers => {
                     foundUUID = true;
                 } //END if
             } //END for
-            if (!foundUUID && adapter.config.enableAutoDiscover) {
+            if (!foundUUID && adapter.config.enableAutoDiscover && discoveredDevices.indexOf(location) === -1) {
                 adapter.log.info(`Found new device: ${location}`);
-                firstDevLookup(location);
+                discoveredDevices.push(location);
+                addTask({name: 'firstDevLookup', location});
             } //END if
             processTasks();
         }); //END adapter.getDevices()
@@ -1174,10 +1171,8 @@ function subscribeEvent(id, state) {
     const service = id.replace(/\.Alive/ig, '');
     if (state.val && adapter.config.enableAutoSubscription === true) {
         adapter.getObject(service, (err, obj) => {
-            let device_ip = JSON.stringify(obj.native.ip);
-            device_ip = device_ip.replace(/"/ig, '');
-            let device_port = JSON.stringify(obj.native.port);
-            device_port = device_port.replace(/"/ig, '');
+            let deviceIP = obj.native.ip;
+            let devicePort = obj.native.port;
 
             if (!obj || !obj.common || !obj.common.name || typeof obj.common.name !== 'string') {
                 console.log(JSON.stringify(obj));
@@ -1189,7 +1184,7 @@ function subscribeEvent(id, state) {
 
                     const eventUrl = getValueFromArray(_channel[x].native.eventSubURL).replace(/"/ig, '');
                     try {
-                        const infoSub = new Subscription(device_ip, device_port, eventUrl, 1000);
+                        const infoSub = new Subscription(deviceIP, devicePort, eventUrl, 1000);
                         listener(eventUrl, _channel[x], infoSub);
                     } catch (err) {
                     }
@@ -1206,30 +1201,28 @@ function subscribeEvent(id, state) {
 function listener(eventUrl, _channel, infoSub) {
     let variabaleTimeout;
 
-    if (infoSub) {
-        infoSub.on('subscribed', sid => {
-            variabaleTimeout += 5;
-            setTimeout(() => adapter.setState(_channel._id + '.sid', {val: sid.sid, ack: true}), variabaleTimeout);
-            setTimeout(() => variabaleTimeout = 0, 100);
-        });
+    infoSub.on('subscribed', sid => {
+        variabaleTimeout += 5;
+        setTimeout(() => adapter.setState(_channel._id + '.sid', {val: sid.sid, ack: true}), variabaleTimeout);
+        setTimeout(() => variabaleTimeout = 0, 100);
+    });
 
-        infoSub.on('message', obj => {
-            variabaleTimeout += 5;
-            setTimeout(() => events2objects(obj, _channel), variabaleTimeout);
-            setTimeout(() => variabaleTimeout = 0, 100);
-        });
-        infoSub.on('error', err => {
-            adapter.log.debug(`Subscription error: ` + JSON.stringify(err));
-            //subscription.unsubscribe();
-        });
+    infoSub.on('message', obj => {
+        variabaleTimeout += 5;
+        setTimeout(() => events2objects(obj, _channel), variabaleTimeout);
+        setTimeout(() => variabaleTimeout = 0, 100);
+    });
+    infoSub.on('error', err => {
+        adapter.log.debug(`Subscription error: ` + JSON.stringify(err));
+        //subscription.unsubscribe();
+    });
 
-        infoSub.on('resubscribed', sid => {
-            //adapter.log.info('SID: ' + JSON.stringify(sid) + ' ' + eventUrl + ' ' + _channel._id);
-            variabaleTimeout = +5;
-            setTimeout(() => adapter.setState(`${_channel._id}.sid`, {val: sid.sid, ack: true}), variabaleTimeout);
-            setTimeout(() => variabaleTimeout = 0, 100);
-        });
-    } //END if
+    infoSub.on('resubscribed', sid => {
+        //adapter.log.info('SID: ' + JSON.stringify(sid) + ' ' + eventUrl + ' ' + _channel._id);
+        variabaleTimeout = +5;
+        setTimeout(() => adapter.setState(`${_channel._id}.sid`, {val: sid.sid, ack: true}), variabaleTimeout);
+        setTimeout(() => variabaleTimeout = 0, 100);
+    });
 } //END function listener()
 
 
@@ -1350,7 +1343,7 @@ function setNewState(obj, count, data, cb) {
                         addTask({name: 'valChannel', strState, serviceID, stateName, val});
                     }
                     processTasks();
-                    cb && cb();
+                    cb();
                 }); //END parseString()
             } else if (newStates2.match(/"\$":/ig)) {
                 let states = convertWM(newStates);

@@ -203,7 +203,7 @@ The objects listed here can be found in the upnp standard and/or the device/dine
 <a name="Changelog">## Changelog</a>
 
 ## Changelog
-### 1.0.2
+### 1.0.3 (2019-02-21)
 * (bluefox) refactoring
 
 ### 0.3.9
@@ -272,7 +272,7 @@ The objects listed here can be found in the upnp standard and/or the device/dine
 ## License
 The MIT License (MIT)
 
-Copyright (c) 2016 Jey Cee <jey-cee@live.com>
+Copyright (c) 2016-2019 Jey Cee <jey-cee@live.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

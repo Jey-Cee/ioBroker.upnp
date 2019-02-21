@@ -1,10 +1,10 @@
 {
     "common": {
         "name": "upnp",
-        "version": "1.0.2",
+        "version": "1.0.3",
         "title": "UPnP Adapter",
         "news": {
-            "1.0.2": {
+            "1.0.3": {
                 "en": "Commands will not be called parallel",
                 "de": "Befehle werden nicht parallel aufgerufen",
                 "ru": "Команды не будут называться параллельными",
