@@ -1,0 +1,103 @@
+<script type="text/x-iobroker" data-template-name="upnp">
+    <div class="row">
+        <div class="input-field col s4 upnp-enabled">
+            <input type="checkbox" data-field="enabled" class="upnp-enabled-checkbox" data-default="false"/>
+            <!-- this field is mandatory, just to find out if to include this settings or not</span-->
+            <span class="translate">enabled</span>
+        </div>
+        <div class="input-field col s7 upnp">
+            <input type="text" class="upnp-schedule" data-field="schedule"/>
+            <label for="schedule" class="translate">Schedule</label>
+            <p class="translate">CRON rule</p>
+        </div>
+        <div class="input-field col s1 upnp">
+            <button class="upnp-button" style="height: 2.6em; background: #fff; color: #0e2e4a; padding: 1px 0 0 0; cursor: pointer; width: 2.6em; margin: 0 1px 0 0; display: inline-block; position: relative; z-index: 1; border: 0; border-radius: 2px; font-size: 10px!important;"><i class="material-icons">schedule</i></button>
+        </div>
+    </div>
+</script>
+
+<!-- translations -->
+<script type="text/javascript">
+    systemDictionary = $.extend(systemDictionary, {
+        "Schedule": {
+            "en": "Schedule",
+            "de": "Zeitplan",
+            "ru": "Расписание",
+            "pt": "Cronograma",
+            "nl": "Planning",
+            "fr": "Programme",
+            "it": "Programma",
+            "es": "Programar",
+            "pl": "Harmonogram",
+            "zh-cn": "时间表"
+        },
+        "CRON rule": {
+            "en": "CRON rule",
+            "de": "CRON-Regel",
+            "ru": "Правило CRON",
+            "pt": "Regra CRON",
+            "nl": "CRON-regel",
+            "fr": "Règle CRON",
+            "it": "Regola CRON",
+            "es": "Regla CRON",
+            "pl": "Reguła CRON",
+            "zh-cn": "CRON规则"
+        },
+        "Allowed only for upnp states with role action": {
+            "en": "Allowed only for upnp states with role \"action\"",
+            "de": "Nur für Upnp-Zustände mit Rolle \"action\" zulässig",
+            "ru": "Разрешено только для состояний upnp с \"action\" ролью",
+            "pt": "Permitido apenas para estados upnp com ação de função",
+            "nl": "Alleen toegestaan ​​voor upnp-staten met rolactie",
+            "fr": "Autorisé uniquement pour les états upnp avec action de rôle",
+            "it": "Consentito solo per stati upnp con azione di ruolo",
+            "es": "Permitido solo para estados upnp con acción de rol",
+            "pl": "Dozwolone tylko dla stanów upnp z rolą action",
+            "zh-cn": "仅允许具有角色操作的upnp状态"
+        }
+    });
+
+    // There are two ways how to predefine default settings:
+    // - with attribute "data-default" (content independent)
+    // - with function in global variable "defaults". Function name is equal with adapter name.
+    //   as input function receives object with all information concerning it
+    if (typeof defaults !== 'undefined') {
+        defaults.upnp = function (obj, instanceObj) {
+            if (obj && obj.native && obj.native.request && obj._id.startsWith('upnp.')) {
+                return {
+                    enabled:     false,
+                    schedule:    "* * * * *" // every minute
+                };
+            }
+            return {
+                enabled:     false
+            };
+        }
+    }
+
+    // init select
+    if (typeof customPostInits !== 'undefined') {
+        customPostInits.upnp = function ($div, values, instanceObj, type, role, obj) {
+            console.log('upnp');
+            if (role !== 'button' || obj === false || (obj && obj.native && obj.native.request && obj._id.startsWith('upnp.'))) {
+                $div.find('.upnp').hide();
+                $div.find('.upnp-enabled').html(_('Allowed only for upnp states with role action'))
+            } else if (typeof setupCron === 'function') {
+                $div.find('.upnp-button').on('click', function () {
+                    var val = $div.find('.upnp-schedule').val();
+                    val = (val || '').replace(/"/g, '').replace(/'/g, '');
+                    try {
+                        setupCron(val, function (newValue) {
+                            if (newValue !== null && val !== newValue) {
+                                $div.find('.upnp-schedule').val(newValue).trigger('change');
+                                M.updateTextFields('.upnp-schedule');
+                            }
+                        });
+                    } catch (e) {
+                        alert(_('Cannot parse value as cron'));
+                    }
+                });
+            }
+        }
+    }
+</script>

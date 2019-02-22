@@ -1,10 +1,10 @@
 {
     "common": {
         "name": "upnp",
-        "version": "1.0.3",
-        "title": "UPnP Adapter",
+        "version": "1.0.4",
+        "title": "UPnP",
         "news": {
-            "1.0.3": {
+            "1.0.4": {
                 "en": "Commands will not be called parallel",
                 "de": "Befehle werden nicht parallel aufgerufen",
                 "ru": "Команды не будут называться параллельными",
@@ -40,9 +40,9 @@
             }
         },
         "desc": {
-            "en": "ioBroker UPnP Adapter",
-            "de": "ioBroker UPnP Adapter",
-            "ru": "ioBroker UPnP драйвер как образец"
+            "en": "ioBroker UPnP",
+            "de": "ioBroker UPnP",
+            "ru": "ioBroker UPnP"
         },
         "platform": "Javascript/Node.js",
         "license": "MIT",
@@ -57,6 +57,7 @@
         "loglevel": "info",
         "type": "network",
         "messagebox": true,
+        "supportCustoms": true,
         "subscribe": "messagebox",
         "authors": [
             {
