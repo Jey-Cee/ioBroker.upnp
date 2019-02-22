@@ -13,7 +13,8 @@
                 "fr": "changements pour le nom de l'objet; réparer pour USN vide",
                 "it": "modifiche per il nome dell'oggetto; correzione per USN vuoto",
                 "es": "cambios para el nombre del objeto; arreglar para USN vacío",
-                "pl": "zmiany dla nazwy obiektu; poprawka dla pustego USN"
+                "pl": "zmiany dla nazwy obiektu; poprawka dla pustego USN",
+                "zh-cn": "对象名称的更改;"
             },
             "0.3.9": {
                 "en": "fix auto discover\n",
@@ -24,13 +25,21 @@
                 "fr": "correction automatique\n",
                 "it": "correggi il rilevamento automatico\n",
                 "es": "arreglar auto descubrir\n",
-                "pl": "napraw automatyczne wykrywanie\n"
+                "pl": "napraw automatyczne wykrywanie\n",
+                "zh-cn": "修复自动发现"
             }
         },
         "desc": {
             "en": "ioBroker UPnP Adapter",
             "de": "ioBroker UPnP Adapter",
-            "ru": "ioBroker UPnP драйвер как образец"
+            "ru": "ioBroker UPnP драйвер как образец",
+            "pt": "Adaptador UPnP ioBroker",
+            "nl": "ioBroker UPnP-adapter",
+            "fr": "Adaptateur UPnP ioBroker",
+            "it": "ioBroker UPnP Adapter",
+            "es": "Adaptador ioBroker UPnP",
+            "pl": "Adapter OBroker UPnP",
+            "zh-cn": "ioBroker UPnP适配器"
         },
         "platform": "Javascript/Node.js",
         "license": "MIT",
