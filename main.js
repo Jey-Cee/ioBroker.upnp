@@ -1084,7 +1084,7 @@ function _processTasks() {
     } else {
         const task = tasks.shift();
         if (task.name === 'sendCommand') {
-            sendCommand(task.id);
+            sendCommand(task.id, () => setTimeout(_processTasks, 0));
         } else
         if (task.name === 'firstDevLookup') {
             firstDevLookup(task.location, () => setTimeout(_processTasks, 0));
@@ -1560,7 +1560,7 @@ function createAliveArr() {
 }
 
 // control the devices
-function sendCommand(id) {
+function sendCommand(id, cb) {
     adapter.log.debug('Send Command for ' + id);
     let parts = id.split('.');
     parts.pop();
@@ -1668,7 +1668,7 @@ function sendCommand(id) {
                     body += helperBody;
                     body = `<u:${actionName} xmlns:u="${vServiceType}">${body}</u:${actionName}>`;
 
-                    createMessage(vServiceType, actionName, ip, port, vControlURL, body, id);
+                    createMessage(vServiceType, actionName, ip, port, vControlURL, body, id, cb);
                 });
             })
         });
@@ -1694,17 +1694,17 @@ function readSchedules() {
     });
 }
 
-// START creat Action message
-function createMessage(sType, aName, _ip, _port, cURL, body, action_id) {
+// create Action message
+function createMessage(sType, aName, _ip, _port, cURL, body, actionID, cb) {
     const UA = 'UPnP/1.0, ioBroker.upnp';
     let url = `http://${_ip}:${_port}${cURL}`;
 
     const contentType = 'text/xml; charset="utf-8"';
     let soapAction = `${sType}#${aName}`;
-    let postData =
-        `<s:Envelope s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\" xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\">
-        <s:Body>${body}</s:Body>
-        </s:Envelope>`;
+    let postData = `
+<s:Envelope s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\" xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\">
+    <s:Body>${body}</s:Body>
+</s:Envelope>`;
 
     //Options for the SOAP message
     let options = {
@@ -1720,7 +1720,7 @@ function createMessage(sType, aName, _ip, _port, cURL, body, action_id) {
 
     // Send Action message to Device/Service
     request(options, (err, res, body) => {
-        adapter.log.debug('response');
+        adapter.log.debug('response: ' + body);
         if (err) {
             adapter.log.warn(`Error sending SOAP request: ${err}`);
         } else {
@@ -1728,45 +1728,40 @@ function createMessage(sType, aName, _ip, _port, cURL, body, action_id) {
                 adapter.log.warn(`Unexpected answer from upnp service: ` + JSON.stringify(res) + `\n Sent message: ` + JSON.stringify(options));
             } else {
                 //look for data in the response
-                const pattData = new RegExp(/<[^\/]\w*\s*[^<]*/g); //second attempt
-                //die Zusätlichen infos beim Argument namen müssen entfernt werden damit er genutzt werden kann
-                let foundData = body.match(pattData);
+                // die Zusätlichen infos beim Argument namen müssen entfernt werden damit er genutzt werden kann
+                let foundData = body.match(/<[^\/]\w*\s*[^<]*/g);
                 if (foundData) {
+                    actionID = actionID.replace(/\.request$/, '');
+
                     for (let i = foundData.length - 1; i >= 0; i--) {
                         let foundArgName = foundData[i].match(/<\w*>/);
                         let strFoundArgName;
                         let argValue;
                         if (foundArgName) {
-                            strFoundArgName = JSON.stringify(foundArgName);
+                            strFoundArgName = foundArgName[0];
                             // TODO: must be rewritten
-                            strFoundArgName = strFoundArgName.replace(/"/g, '');
-                            strFoundArgName = strFoundArgName.replace(/\[/g, '');
-                            strFoundArgName = strFoundArgName.replace(/]/g, '');
+                            strFoundArgName = strFoundArgName.replace(/["\][]}/g, '');
                             argValue = foundData[i].replace(strFoundArgName, '');
-                            strFoundArgName = strFoundArgName.replace('<', '');
-                            strFoundArgName = strFoundArgName.replace('>', '');
+                            strFoundArgName = strFoundArgName.replace(/[<>]/g, '');
                         } else {
                             foundArgName = foundData[i].match(/<\w*\s/);
-                            // TODO: must be rewritten
-                            strFoundArgName = JSON.stringify(foundArgName);
-                            strFoundArgName = strFoundArgName.replace(/"/g, '');
-                            strFoundArgName = strFoundArgName.replace(/\[/g, '');
-                            strFoundArgName = strFoundArgName.replace(/]/g, '');
-                            strFoundArgName = strFoundArgName.replace('<', '');
-                            strFoundArgName = strFoundArgName.replace(/\s$/, '');
-                            argValue = foundData[i].replace(/<.*>/, '');
+                            if (foundArgName) {
+                                // TODO: must be rewritten
+                                strFoundArgName = foundArgName[0];
+                                strFoundArgName = strFoundArgName.replace(/["[\]<]/g, '').replace(/\s+$/, '');
+                                argValue = foundData[i].replace(/<.*>/, '');
+                            }
                         }
 
-                        if (strFoundArgName !== 'null') {
-                            let argID = action_id + '.' + strFoundArgName;
+                        if (strFoundArgName !== null && strFoundArgName !== undefined) {
+                            let argID = actionID + '.' + strFoundArgName;
                             addTask({
                                 name: 'setState',
                                 id: argID,
                                 state: {val: argValue, ack: true},
-                                cb: cb => {
+                                cb: cb =>
                                     //look for relatedStateVariable and setState
-                                    syncArgument(action_id, argID, argValue, cb);
-                                }
+                                    syncArgument(actionID, argID, argValue, cb)
                             });
                         }
                     }
@@ -1774,22 +1769,18 @@ function createMessage(sType, aName, _ip, _port, cURL, body, action_id) {
                 } else {
                     adapter.log.debug('Nothing found: ' + JSON.stringify(body));
                 }
-
-            }//END if
-        }//END if error
-
+            }
+        }
+        cb && cb();
     });
-
 }
 
-//END creat Action message
-
-//Sync Argument with relatedStateVariable
-function syncArgument(action_id, argID, argValue, cb) {
+// Sync Argument with relatedStateVariable
+function syncArgument(actionID, argID, argValue, cb) {
     adapter.getObject(argID, (err, obj) => {
         if (obj) {
             let relatedStateVariable = obj.native.relatedStateVariable;
-            let serviceID = action_id.replace(/\.\w*$/, '');
+            let serviceID = actionID.replace(/\.\w*$/, '');
             let relStateVarID = serviceID + '.' + relatedStateVariable;
             adapter.setState(relStateVarID, {val: argValue, ack: true}, cb);
         } else {
