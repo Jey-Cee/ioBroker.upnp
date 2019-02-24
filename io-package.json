@@ -1,9 +1,21 @@
 {
     "common": {
         "name": "upnp",
-        "version": "0.3.9",
-        "title": "UPnP Adapter",
+        "version": "1.0.4",
+        "title": "UPnP",
         "news": {
+            "1.0.4": {
+                "en": "Commands will not be called parallel",
+                "de": "Befehle werden nicht parallel aufgerufen",
+                "ru": "Команды не будут называться параллельными",
+                "pt": "Comandos não serão chamados paralelos",
+                "nl": "Commando's worden niet parallel geroepen",
+                "fr": "Les commandes ne seront pas appelées parallèles",
+                "it": "I comandi non saranno chiamati paralleli",
+                "es": "Los comandos no serán llamados paralelos.",
+                "pl": "Polecenia nie będą nazywane równoległymi",
+                "zh-cn": "命令不会被并行调用"
+            },
             "0.3.8": {
                 "en": "changes for object name's; fix for empty USN",
                 "de": "Änderungen für Objektnamen; fix für leere USN",
@@ -28,9 +40,9 @@
             }
         },
         "desc": {
-            "en": "ioBroker UPnP Adapter",
-            "de": "ioBroker UPnP Adapter",
-            "ru": "ioBroker UPnP драйвер как образец"
+            "en": "ioBroker UPnP",
+            "de": "ioBroker UPnP",
+            "ru": "ioBroker UPnP"
         },
         "platform": "Javascript/Node.js",
         "license": "MIT",
@@ -45,6 +57,7 @@
         "loglevel": "info",
         "type": "network",
         "messagebox": true,
+        "supportCustoms": true,
         "subscribe": "messagebox",
         "authors": [
             {
@@ -59,6 +72,5 @@
         "enableSimplePlayerControls": "false"
     },
     "instanceObjects": [
-        {}
     ]
 }
