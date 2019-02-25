@@ -1326,7 +1326,7 @@ function lookupService(data, arrLength, cb, y, counter) {
     } else {
         adapter.getState(arrSID[y], (err, state) => {
             if (err || !state || typeof state !== 'object') {
-                adapter.log.error(`Error in lookupService: ${err || 'No object'}`);
+                adapter.log.error(`Error in lookupService: ${err || 'No object ' + arrSID[y]}`);
                 setImmediate(lookupService, data, arrLength, cb, y - 1, counter);
             } else {
                 counter--;
