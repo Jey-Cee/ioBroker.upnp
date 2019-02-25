@@ -1134,49 +1134,52 @@ function startServer() {
     server.on('advertise-alive', headers => {
         let usn = getValueFromArray(headers['USN'])
             .replace(/uuid:/ig, '')
-            .replace(/::.*/ig, '"');
+            .replace(/::.*/ig, '');
 
         let nt = getValueFromArray(headers['NT']);
         let location = getValueFromArray(headers['LOCATION']);
         if (!usn.match(/f40c2981-7329-40b7-8b04-27f187aecfb5/)) {
-            adapter.getDevices((err, devices) => {
-                let device;
-                let deviceID;
-                let deviceUUID;
-                let deviceUSN;
-                let foundUUID = false;
-                for (device in devices) {
-                    if (!devices.hasOwnProperty(device)) continue;
-                    deviceUUID = getValueFromArray(devices[device]['native']['uuid']);
-                    deviceUSN = getValueFromArray(devices[device]['native']['deviceType']);
-                    //Set object Alive for the Service true
-                    if (deviceUUID === usn && deviceUSN === nt) {
-                        let max_age = getValueFromArray(headers['CACHE-CONTROL'])
-                            .replace(/max-age.=./ig, '')
-                            .replace(/max-age=/ig, '')
-                            .replace(/"/ig, '');
-                        deviceID = getValueFromArray(devices[device]._id);
-                        addTask({
-                            name: 'setState',
-                            id: `${deviceID}.Alive`,
-                            state: {val: true, ack: true, expire: max_age}
-                        });
-                        addTask({name: subscribeEvent, deviceID});
-                    } //END if
-                    if (deviceUUID === usn) {
-                        foundUUID = true;
-                    } //END if
-                } //END for
-                if (!foundUUID && adapter.config.enableAutoDiscover && discoveredDevices.indexOf(location) === -1) {
-                    adapter.log.info(`Found new device: ${location}`);
-                    discoveredDevices.push(location);
-                    addTask({name: 'firstDevLookup', location});
-                } //END if
-                processTasks();
-            }); //END adapter.getDevices()
-        } //END if
+            if (discoveredDevices.indexOf(location) === -1) {
+                discoveredDevices.push(location);
+
+                adapter.getDevices((err, devices) => {
+                    let foundUUID = false;
+                    for (let i = 0; i < devices.length; i++) {
+                        if (!devices[i] || !devices[i].native || !devices[i].native.uuid) continue;
+                        const deviceUUID = devices[i].native.uuid;
+                        const deviceUSN = devices[i].native.deviceType;
+                        // Set object Alive for the Service true
+                        if (deviceUUID === usn && deviceUSN === nt) {
+                            let max_age = getValueFromArray(headers['CACHE-CONTROL'])
+                                .replace(/max-age.=./ig, '')
+                                .replace(/max-age=/ig, '')
+                                .replace(/"/ig, '');
+                            addTask({
+                                name: 'setState',
+                                id: `${devices[i]._id}.Alive`,
+                                state: {val: true, ack: true, expire: max_age}
+                            });
+                            addTask({name: 'subscribeEvent', deviceID: devices[i]._id});
+                        }
+                        if (deviceUUID === usn) {
+                            foundUUID = true;
+                            break;
+                        }
+                    }
+
+                    if (!foundUUID && adapter.config.enableAutoDiscover) {
+                        adapter.log.info(`Found new device: ${location}`);
+                        addTask({name: 'firstDevLookup', location});
+                    } else {
+                        const pos = discoveredDevices.indexOf(location);
+                        pos !== -1 && discoveredDevices.splice(pos, 1);
+                    }
+                    processTasks();
+                });
+            }
+
+        }
     });
-    // /END server.on('advertise-alive')
 
     server.on('advertise-bye', headers => {
         let usn = JSON.stringify(headers['USN']);
