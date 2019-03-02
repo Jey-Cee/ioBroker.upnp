@@ -221,7 +221,7 @@ You can enable polling in admin via objects configuration.
 
 ## Changelog
 
-### 1.0.6 (2019-02-25)
+### 1.0.7 (2019-03-01)
 Breaking change: naming was changed and command to poll has another name - "request"
 * (bluefox) refactoring
 * (bluefox) scheduling per action configurable from admin

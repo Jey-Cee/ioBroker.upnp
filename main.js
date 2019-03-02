@@ -4,9 +4,8 @@
 const utils = require('./lib/utils'); // Get common adapter utils
 const adapterName = require('./package.json').name.split('.').pop();
 
-//include node-ssdp and node-upnp-subscription
+// include node-ssdp and node-upnp-subscription
 const {Client, Server} = require('node-ssdp');
-let client = new Client();
 const Subscription = require('./lib/upnp-subscription');
 const parseString = require('xml2js').parseString;
 const request = require('request');
@@ -15,6 +14,7 @@ const nodeSchedule = require('node-schedule');
 // include UPnP Player
 const player = require('./lib/player');
 let adapter;
+let client = new Client();
 player.registerTasksHandler(addTask, processTasks);
 
 const tasks = [];
@@ -24,6 +24,8 @@ const actions = {}; // scheduled actions
 const crons = {};
 const checked = {}; // store checked objects for polling
 let discoveredDevices = [];
+let sidPromise; // Read SIDs promise
+let globalCb;  // callback for last processTasks
 
 function startCronJob(cron) {
     console.log('Start cron JOB: ' + cron);
@@ -95,7 +97,7 @@ function startAdapter(options) {
             playerTimer = null;
             server.stop(); // advertise shutting down and stop listening
             adapter.log.info('cleaned everything up...');
-            clearAsStates(callback);
+            clearAliveAndSIDStates(callback);
         } catch (e) {
             callback();
         }
@@ -182,7 +184,6 @@ function getValueFromArray(value) {
 }
 
 let foundIPs = []; // Array for the caught broadcast answers
-let arrAlive = [];
 
 function sendBroadcast() {
     // adapter.log.debug('Send Broadcast');
@@ -308,7 +309,7 @@ function firstDevLookup(strLocation, cb) {
                             xmlManufacturerURL = '';
                         }
 
-                        //Looking for the modelNumber
+                        // Looking for the modelNumber
                         try {
                             xmlModelNumber = getValueFromArray(path.modelNumber).replace(/"/g, '');
                         } catch (err) {
@@ -316,7 +317,7 @@ function firstDevLookup(strLocation, cb) {
                             xmlModelNumber = '';
                         }
 
-                        //Looking for the modelDescription
+                        // Looking for the modelDescription
                         try {
                             xmlModelDescription = getValueFromArray(path.modelDescription).replace(/"/g, '');
                         } catch (err) {
@@ -324,7 +325,7 @@ function firstDevLookup(strLocation, cb) {
                             xmlModelDescription = '';
                         }
 
-                        //Looking for the modelName
+                        // Looking for the modelName
                         try {
                             xmlModelName = getValueFromArray(path.modelName).replace(/"/g, '');
                         } catch (err) {
@@ -332,7 +333,7 @@ function firstDevLookup(strLocation, cb) {
                             xmlModelName = '';
                         }
 
-                        //Looking for the modelURL
+                        // Looking for the modelURL
                         try {
                             xmlModelURL = getValueFromArray(path.modelURL).replace(/"/g, '');
                         } catch (err) {
@@ -341,7 +342,7 @@ function firstDevLookup(strLocation, cb) {
                         }
 
 
-                        //START - Creating the root object of a device
+                        // START - Creating the root object of a device
                         adapter.log.debug(`Creating root element for device: ${xmlFN}`);
 
                         addTask({
@@ -371,37 +372,41 @@ function firstDevLookup(strLocation, cb) {
                         let pathRoot = result.root.device[0];
                         let objectName = `${xmlFN}.${xmlTypeOfDevice}`;
                         createServiceList(result, xmlFN, xmlTypeOfDevice, objectName, strLocation, strPort, pathRoot);
+                        const aliveID = `${adapter.namespace}.${xmlFN}.${xmlTypeOfDevice}.Alive`;
                         addTask({
                             name: 'setObjectNotExists',
-                            id: `${xmlFN}.${xmlTypeOfDevice}.Alive`,
+                            id: aliveID,
                             obj: {
                                 type: 'state',
                                 common: {
                                     name: 'Alive',
                                     type: 'boolean',
                                     role: 'indicator.reachable',
+                                    def: false,
                                     read: true,
                                     write: false
                                 },
                                 native: {}
                             }
                         });
-                        //END - Creating the root object of a device
 
+                        // Add to Alives list
+                        getIDs()
+                            .then(result => result.alives.indexOf(aliveID) === -1 && result.alives.push(aliveID));
 
-                        //START - Creating SubDevices list for a device
-                        let i_SubDevices = 0;
+                        // START - Creating SubDevices list for a device
+                        let lenSubDevices = 0;
                         let xmlfriendlyName;
 
                         if (path.deviceList && path.deviceList[0].device) {
-                            //Counting SubDevices
-                            i_SubDevices = path.deviceList[0].device.length;
+                            // Counting SubDevices
+                            lenSubDevices = path.deviceList[0].device.length;
 
-                            if (i_SubDevices) {
-                                //adapter.log.debug('Found more than one SubDevice');
-                                for (i = i_SubDevices - 1; i >= 0; i--) {
+                            if (lenSubDevices) {
+                                // adapter.log.debug('Found more than one SubDevice');
+                                for (i = lenSubDevices - 1; i >= 0; i--) {
 
-                                    //Looking for deviceType of device
+                                    // Looking for deviceType of device
                                     try {
                                         xmlDeviceType = getValueFromArray(path.deviceList[0].device[i].deviceType).replace(/"/g, '');
                                         xmlTypeOfDevice = xmlDeviceType.replace(/:\d/, '');
@@ -507,21 +512,28 @@ function firstDevLookup(strLocation, cb) {
                                     let pathSub = result.root.device[0].deviceList[0].device[i];
                                     let objectNameSub = `${xmlFN}.${xmlTypeOfDevice}`;
                                     createServiceList(result, xmlFN, xmlTypeOfDevice, objectNameSub, strLocation, strPort, pathSub);
+                                    const aliveID = `${adapter.namespace}.${xmlFN}.${xmlTypeOfDevice}.Alive`;
                                     addTask({
                                         name: 'setObjectNotExists',
-                                        id: `${xmlFN}.${xmlTypeOfDevice}.Alive`,
+                                        id: aliveID,
                                         obj: {
                                             type: 'state',
                                             common: {
                                                 name: 'Alive',
                                                 type: 'boolean',
                                                 role: 'indicator.reachable',
+                                                def: false,
                                                 read: true,
                                                 write: false
                                             },
                                             native: {}
                                         }
                                     });
+
+                                    // Add to Alives list
+                                    getIDs()
+                                        .then(result => result.alives.indexOf(aliveID) === -1 && result.alives.push(aliveID));
+
                                     let TypeOfSubDevice = xmlTypeOfDevice;
 
                                     //START - Creating SubDevices list for a sub-device
@@ -642,30 +654,33 @@ function firstDevLookup(strLocation, cb) {
                                                 pathSub = result.root.device[0].deviceList[0].device[i].deviceList[0].device[i2];
                                                 objectNameSub = `${xmlFN}.${TypeOfSubDevice}.${xmlTypeOfDevice}`;
                                                 createServiceList(result, xmlFN, `${TypeOfSubDevice}.${xmlTypeOfDevice}`, objectNameSub, strLocation, strPort, pathSub);
+                                                const aliveID = `${adapter.namespace}.${xmlFN}.${TypeOfSubDevice}.${xmlTypeOfDevice}.Alive`;
                                                 addTask({
                                                     name: 'setObjectNotExists',
-                                                    id: `${xmlFN}.${TypeOfSubDevice}.${xmlTypeOfDevice}.Alive`,
+                                                    id: aliveID,
                                                     obj: {
                                                         type: 'state',
                                                         common: {
                                                             name: 'Alive',
                                                             type: 'boolean',
                                                             role: 'indicator.reachable',
+                                                            def: false,
                                                             read: true,
                                                             write: false
                                                         },
                                                         native: {}
                                                     }
                                                 });
-                                            } //END for
-                                        }//END if
-                                    } //END if
-                                    //END - Creating SubDevices list for a sub-device
-                                } //END for
-                            }//END if
-                        } //END if
-                        //END - Creating SubDevices list for a device
-                    }//END else
+                                                // Add to Alives list
+                                                getIDs()
+                                                    .then(result => result.alives.indexOf(aliveID) === -1 && result.alives.push(aliveID));
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
 
                     // remove device from processed list
                     const pos = discoveredDevices.indexOf(originalStrLocation);
@@ -790,21 +805,27 @@ function createServiceList(result, xmlFN, xmlTypeOfDevice, object, strLocation, 
             }
         });
 
+        const sid = `${adapter.namespace}.${object}.${xmlService}.sid`;
         addTask({
             name: 'setObjectNotExists',
-            id: `${object}.${xmlService}.sid`,
+            id: sid,
             obj: {
                 type: 'state',
                 common: {
                     name: 'Subscription ID',
                     type: 'string',
                     role: 'state',
+                    def: '',
                     read: true,
                     write: true
                 },
                 native: {}
             }
         });
+
+        // Add to SID list
+        getIDs()
+            .then(result => result.sids.indexOf(sid) === -1 && result.sids.push(sid));
 
         let SCPDlocation = `http://${strLocation}:${strPort}${xmlSCPDURL}`;
         let service = `${xmlFN}.${xmlTypeOfDevice}.${xmlService}`;
@@ -861,8 +882,8 @@ function createServiceStateTable(result, service) {
     let xmlName;
     let xmlDataType;
 
-    //Counting stateVariable's
-    //adapter.log.debug('Number of stateVariables: ' + iStateVarLength);
+    // Counting stateVariable's
+    // adapter.log.debug('Number of stateVariables: ' + iStateVarLength);
     try {
         for (let i2 = iStateVarLength - 1; i2 >= 0; i2--) {
             let stateVariableAttr;
@@ -940,7 +961,6 @@ function createServiceStateTable(result, service) {
     //END Add serviceList for SubDevice
 
 } //END function
-//END Creating serviceStateTable
 
 function createActionList(result, service) {
     if (!result || !result.scpd || !result.scpd.actionList || !result.scpd.actionList[0]) {
@@ -1003,6 +1023,7 @@ function createArgumentList(result, service, actionName, action_number, path) {
                 name: 'Initiate poll',
                 role: 'button',
                 type: 'boolean',
+                def: false,
                 read: false,
                 write: true
             },
@@ -1047,6 +1068,7 @@ function createArgumentList(result, service, actionName, action_number, path) {
                     name: xmlName,
                     role: 'state.argument.' + xmlDirection,
                     type: 'string',
+                    def: '',
                     read: true,
                     write: false
                 },
@@ -1063,12 +1085,18 @@ function createArgumentList(result, service, actionName, action_number, path) {
 //END Creating argumentList
 
 let showTimer = null;
-function processTasks() {
+function processTasks(cb) {
     if (!taskRunning && tasks.length) {
+        if (cb) {
+            globalCb = cb; // used by unload
+        }
+
         taskRunning = true;
         setImmediate(_processTasks);
         adapter.log.debug('Started processTasks with ' + tasks.length + ' tasks');
         showTimer = setInterval(() => adapter.log.debug(`Tasks ${tasks.length}...`), 5000);
+    } else if (cb) {
+        cb();
     }
 }
 
@@ -1081,6 +1109,10 @@ function _processTasks() {
         taskRunning = false;
         adapter.log.debug('All tasks processed');
         clearInterval(showTimer);
+        if (globalCb) {
+            globalCb();
+            globalCb = null;
+        }
     } else {
         const task = tasks.shift();
         if (task.name === 'sendCommand') {
@@ -1111,7 +1143,20 @@ function _processTasks() {
             readSCPD(task.SCPDlocation, task.service, () => setTimeout(_processTasks, 0));
         } else
         if (task.name === 'setObjectNotExists') {
-            adapter.setObjectNotExists(task.id, task.obj, () => setTimeout(_processTasks, 0));
+            adapter.setObjectNotExists(task.id, task.obj, () => {
+                if (task.obj.type === 'state' && task.id.match(/\.sid$/)) {
+                    adapter.getState(task.id, (err, state) => {
+                        if (!state) {
+                            adapter.setState(task.id, false, true, (err, state) =>
+                                setTimeout(_processTasks, 0));
+                        } else {
+                            setTimeout(_processTasks, 0);
+                        }
+                    });
+                } else {
+                    setTimeout(_processTasks, 0);
+                }
+            });
         } else {
             adapter.log.warn('Unknown task: ' + task.name);
             setTimeout(_processTasks, 0);
@@ -1150,14 +1195,14 @@ function startServer() {
                         const deviceUSN = devices[i].native.deviceType;
                         // Set object Alive for the Service true
                         if (deviceUUID === usn && deviceUSN === nt) {
-                            let max_age = getValueFromArray(headers['CACHE-CONTROL'])
+                            let maxAge = getValueFromArray(headers['CACHE-CONTROL'])
                                 .replace(/max-age.=./ig, '')
                                 .replace(/max-age=/ig, '')
-                                .replace(/"/ig, '');
+                                .replace(/"/g, '');
                             addTask({
                                 name: 'setState',
                                 id: `${devices[i]._id}.Alive`,
-                                state: {val: true, ack: true, expire: max_age}
+                                state: {val: true, ack: true, expire: maxAge}
                             });
                             addTask({name: 'subscribeEvent', deviceID: devices[i]._id});
                         }
@@ -1210,11 +1255,11 @@ function startServer() {
                             id: `${deviceID}.Alive`,
                             state: {val: false, ack: true}
                         });
-                    } //END if
-                }  //END for
+                    }
+                } 
                 processTasks();
             }); //END adapter.getDevices()
-        } //END if
+        }
     });
 
     setTimeout(() => server.start(), 15000);
@@ -1231,16 +1276,15 @@ function subscribeEvent(id, cb) {
             parts.pop();
             const channelID = parts.join('.');
 
-            adapter.getChannelsOf(channelID, (err, _channel) => {
-                for (let x = _channel.length - 1; x >= 0; x--) {
-
-                    const eventUrl = getValueFromArray(_channel[x].native.eventSubURL).replace(/"/ig, '');
+            adapter.getChannelsOf(channelID, (err, channels) => {
+                for (let x = channels.length - 1; x >= 0; x--) {
+                    const eventUrl = getValueFromArray(channels[x].native.eventSubURL).replace(/"/g, '');
                     try {
                         const infoSub = new Subscription(deviceIP, devicePort, eventUrl, 1000);
-                        listener(eventUrl, _channel[x], infoSub);
+                        listener(eventUrl, channels[x]._id, infoSub);
                     } catch (err) {
                     }
-                } //END for
+                }
                 cb();
             }); //END adapter.getChannelsOf()
         }); //END adapter.getObjects()
@@ -1250,186 +1294,162 @@ function subscribeEvent(id, cb) {
 }
 
 // message handler for subscriptions
-function listener(eventUrl, _channel, infoSub) {
-    let variabaleTimeout;
+function listener(eventUrl, channelID, infoSub) {
+    let variableTimeout;
+    let resetTimeoutTimer;
 
-    infoSub.on('subscribed', sid => {
-        variabaleTimeout += 5;
-        setTimeout(() => adapter.setState(_channel._id + '.sid', {val: sid.sid, ack: true}), variabaleTimeout);
-        setTimeout(() => variabaleTimeout = 0, 100);
+    infoSub.on('subscribed', data => {
+        variableTimeout += 5;
+
+        setTimeout(() => adapter.setState(channelID + '.sid', {val: ((data && data.sid) || '').toString(), ack: true}), variableTimeout);
+
+        resetTimeoutTimer && clearTimeout(resetTimeoutTimer);
+        resetTimeoutTimer = setTimeout(() => {
+            variableTimeout = 0;
+            resetTimeoutTimer = null;
+        }, 100);
     });
 
-    infoSub.on('message', obj => {
-        variabaleTimeout += 5;
-        setTimeout(() => events2objects(obj, _channel), variabaleTimeout);
-        setTimeout(() => variabaleTimeout = 0, 100);
+    infoSub.on('message', data => {
+        variableTimeout += 5;
+
+        setTimeout(() =>
+            getIDs()
+                .then(result => lookupService(data, JSON.parse(JSON.stringify(result.sids))))
+            ,variableTimeout);
+
+        resetTimeoutTimer && clearTimeout(resetTimeoutTimer);
+        resetTimeoutTimer = setTimeout(() => {
+            variableTimeout = 0;
+            resetTimeoutTimer = null;
+        }, 100);
     });
+
     infoSub.on('error', err => {
-        adapter.log.debug(`Subscription error: ` + JSON.stringify(err));
-        //subscription.unsubscribe();
+        adapter.log.warn(`Subscription error: ` + JSON.stringify(err));
+        // subscription.unsubscribe();
     });
 
-    infoSub.on('resubscribed', sid => {
-        //adapter.log.info('SID: ' + JSON.stringify(sid) + ' ' + eventUrl + ' ' + _channel._id);
-        variabaleTimeout = +5;
-        setTimeout(() => adapter.setState(`${_channel._id}.sid`, {val: sid.sid, ack: true}), variabaleTimeout);
-        setTimeout(() => variabaleTimeout = 0, 100);
+    infoSub.on('resubscribed', data => {
+        // adapter.log.info('SID: ' + JSON.stringify(sid) + ' ' + eventUrl + ' ' + _channel._id);
+        variableTimeout += 5;
+
+        setTimeout(() => adapter.setState(channelID + '.sid', {val: ((data && data.sid) || '').toString(), ack: true}), variableTimeout);
+
+        resetTimeoutTimer && clearTimeout(resetTimeoutTimer);
+        resetTimeoutTimer = setTimeout(() => {
+            variableTimeout = 0;
+            resetTimeoutTimer = null;
+        }, 100);
     });
-} //END function listener()
+}
 
-let arrSID = [];
-
-// Get all .sid Objects for the services and build an array, that is used as index to find them faster
-function events2objects(data, _channel) {
-    let arrLength = arrSID.length;
-    if (!arrLength) {
-        arrSID.push('dummy');
-        //Fill array arrSID if it is empty
-        adapter.getStatesOf(`upnp.${adapter.instance}`, (err, _states) => {
-            let statesLength = _states.length;
-
-            for (let x = statesLength - 1; x >= 0; x--) {
-                if (!JSON.stringify(_states[x]._id).match(/\.sid/g)) {
-                    //if the match deliver null nothing is to do
-                } else {
-                    //if the match deliver an id of an object add them to the array
-                    arrSID.push(_states[x]._id);
-                }
-            } //END for
-        }); //END adapter.getStatesOf()
-
-        //adapter.log.debug('Array arrSID is now filled');
-        //When the array is filled start the search
-        lookupService(data, arrLength);
-    } else {
-        //Start Search
-        if (arrLength === 1) {
-            //adapter.log.debug('Waiting for the array');
-            setTimeout(() => lookupService(data, arrLength), 1500)
-        } else {
-            //adapter.log.debug('Array arrSID is already filled');
-            lookupService(data, arrLength);
-        }
-
-    } //END if
-
-    // let sid = JSON.stringify(data['sid']);
-} //END function events2object
-
-function lookupService(data, arrLength, cb, y, counter) {
-    if (y === undefined) {
-        y = arrLength - 1;
-        counter = arrLength;
-    }
-    if (y < 0) {
+function lookupService(data, SIDs, cb) {
+    if (!SIDs || !SIDs.length || !data || !data.sid) {
         cb && cb();
     } else {
-        adapter.getState(arrSID[y], (err, state) => {
+        const id = SIDs.shift();
+
+        adapter.getState(id, (err, state) => {
             if (err || !state || typeof state !== 'object') {
-                adapter.log.error(`Error in lookupService: ${err || 'No object ' + arrSID[y]}`);
-                setImmediate(lookupService, data, arrLength, cb, y - 1, counter);
+                adapter.log.error(`Error in lookupService: ${err || 'No object ' + id}`);
+                setImmediate(lookupService, data, cb);
             } else {
-                counter--;
-                setNewState(state, counter, data, () =>
-                    setImmediate(lookupService, data, arrLength, cb, y - 1, counter));
+                setNewState(state, id.replace(/\.sid$/, ''), data, () =>
+                    setImmediate(lookupService, data, cb));
             }
         });
     }
 }
 
-function setNewState(state, count, data, cb) {
+function setNewState(state, serviceID, data, cb) {
     // Extract the value of the state
-    let varSID = state.val;
+    let valueSID = state.val;
 
-    if (varSID !== null && varSID !== undefined) {
-        let helper = JSON.stringify(data.sid); // Get the sid from actual message
-        let helper2 = helper.replace(/"/ig, '');
-        let searchString = new RegExp(helper2, 'ig'); // Create a regular expression with the sid of actual message
-        let found = varSID.match(searchString);
+    if (valueSID !== null && valueSID !== undefined) {
+        valueSID = valueSID.toString().toLowerCase();
 
-        if (found) {
-            let serviceID = arrSID[count];
-            serviceID = serviceID.replace(/\.sid/ig, '');
+        if (valueSID.indexOf(data.sid.toString().toLowerCase()) !== -1) {
+            serviceID = serviceID.replace(/\.sid$/, '');
 
-            //Select sub element with States
-            let newStates;
-            newStates = data['body']['e:propertyset']['e:property'];
+            // Select sub element with States
+            let newStates = data.body['e:propertyset']['e:property'];
 
-            try {
-                newStates = newStates['LastChange']['_'];
-            } catch (err) {
-            }
-
-            if (newStates === undefined || newStates === null) {
-                newStates = data['body']['e:propertyset']['e:property']['LastChange'];
+            if (newStates && newStates.LastChange && newStates.LastChange._) {
+                newStates = newStates.LastChange._;
+            } else {
+                newStates = data.body['e:propertyset']['e:property'].LastChange;
             }
 
             let newStates2 = JSON.stringify(newStates);
 
+            // TODO: Must be refactored
             if (newStates2.match(/<Event.*/ig)) {
                 parseString(newStates, (err, result) => {
                     let states = convertEventObject(result['Event']);
-                    //split every array member into state name and value, then push it to ioBroker state
+                    // split every array member into state name and value, then push it to ioBroker state
                     let stateName;
                     let val;
+                    if (states) {
+                        for (let x = states.length - 1; x >= 0; x--) {
+                            let strState = states[x].toString();
+                            stateName = strState.match(/"\w*/i);
+                            stateName = stateName ? stateName[0] : strState;
+                            stateName = stateName.replace(/"/i, '');
 
-                    for (let x = states.length - 1; x >= 0; x--) {
-                        let strState = states[x].toString();
-                        stateName = strState.match(/"\w*/i);
-                        stateName = stateName ? stateName[0] : strState;
-                        stateName = stateName.replace(/"/i, '');
+                            // looking for the value
+                            val = strState.match(/val":"(\w*(:\w*|,\s\w*)*)/ig);
+                            if (val) {
+                                val = val[0];
+                                val = val.replace(/val":"/ig, '');
+                            }
 
-                        // looking for the value
-                        val = strState.match(/val":"(\w*(:\w*|,\s\w*)*)/ig);
-                        if (val) {
-                            val = val[0];
-                            val = val.replace(/val":"/ig, '');
+                            addTask({name: 'valChannel', strState, serviceID, stateName, val});
                         }
-
-                        addTask({name: 'valChannel', strState, serviceID, stateName, val});
+                        processTasks();
                     }
-                    processTasks();
                     cb();
                 }); //END parseString()
             } else if (newStates2.match(/"\$":/ig)) {
                 let states = convertWM(newStates);
 
                 // split every array member into state name and value, then push it to ioBroker state
-                let stateName;
-                for (let z = states.length - 1; z >= 0; z--) {
-                    let strState = states[z].toString();
-                    stateName = strState.match(/"\w*/i);
-                    stateName = stateName ? stateName[0] : strState;
-                    stateName = stateName.replace(/"/i, '');
+                if (states) {
+                    let stateName;
+                    for (let z = states.length - 1; z >= 0; z--) {
+                        let strState = states[z].toString();
+                        stateName = strState.match(/"\w*/i);
+                        stateName = stateName ? stateName[0] : strState;
+                        stateName = stateName.replace(/^"|"$/g, '');
 
-                    addTask({name: 'valChannel', strState, serviceID, stateName, val: valLookup(strState)});
+                        addTask({name: 'valChannel', strState, serviceID, stateName, val: valLookup(strState)});
+                    }
+                    processTasks();
                 }
-                processTasks();
                 cb();
             } else {
-                //Read all other messages and write the states to the related objects
+                // Read all other messages and write the states to the related objects
                 let states = convertInitialObject(newStates);
 
-                // split every array member into state name and value, then push it to ioBroker state
-                let stateName;
-                for (let z = states.length - 1; z >= 0; z--) {
-                    let strState = states[z].toString();
-                    stateName = strState.match(/"\w*/i);
-                    stateName = stateName ? stateName[0] : strState;
-                    stateName = stateName.replace(/"/i, '');
+                if (states) {
+                    // split every array member into state name and value, then push it to ioBroker state
+                    let stateName;
+                    for (let z = states.length - 1; z >= 0; z--) {
+                        let strState = states[z].toString();
+                        stateName = strState.match(/"\w*/i);
+                        stateName = stateName ? stateName[0] : strState;
+                        stateName = stateName.replace(/^"|"$/g, '');
 
-                    addTask({name: 'valChannel', strState, serviceID, stateName, val: valLookup(strState)});
+                        addTask({name: 'valChannel', strState, serviceID, stateName, val: valLookup(strState)});
+                    }
+                    processTasks();
                 }
-                processTasks();
                 cb();
-            } //END if Event
-
-        } //END if
-        else {
+            }
+        } else {
             cb();
         }
-    } //END if
-    else {
+    } else {
         cb();
     }
 }
@@ -1514,52 +1534,50 @@ function convertWM(result) {
 
 //END Event listener
 
-//START clear Alive and sid's states when Adapter stops
-function clearAsStates(cb) {
-    //Clear sid
-    let arrLength = arrSID.length;
-    if (arrLength) {
-        for (let x = arrLength; x >= 0; x--) {
-            try {
-                addTask({name: 'setState', id: arrSID[x], state: {val: '', ack: true}});
-            } catch (err) {
-            }
-        } //END for
-    } //END if
-
-    //Clear Alive
-    arrLength = arrAlive.length;
-    if (arrLength) {
-        for (let y = arrLength; y >= 0; y--) {
-            try {
-                addTask({name: 'setState', id: arrAlive[y], state: {val: 'false', ack: true}});
-            } catch (err) {
-            }
-        } //END for
-    } //END if
-
-    adapter.log.info('Alive and sid states cleared');
-    processTasks();
-    cb && cb();
+// clear Alive and sid's states when Adapter stops
+function clearAliveAndSIDStates(cb) {
+    // Clear sid
+    getIDs()
+        .then(result => {
+            result.sids.forEach(id => {
+                addTask({name: 'setState', id, state: {val: '', ack: true}});
+            });
+            result.alives.forEach(id => {
+                addTask({name: 'setState', id, state: {val: false, ack: true}});
+            });
+            processTasks(cb);
+        });
 }
 
-//END clear Alive and sid's
-
-function createAliveArr() {
-    adapter.getStatesOf(`upnp.${adapter.instance}`, (err, _states) => {
-        let arrLength = arrAlive.length;
-        let statesLength = _states.length;
-        if (!arrLength) {
-
-            for (let x = statesLength - 1; x >= 0; x--) {
-                if (JSON.stringify(_states[x]._id).match(/\.Alive/g) == null) {
-                    //if the match deliver null nothing is to do
-                } else {
-                    arrAlive.push(_states[x]._id);
+function getIDs() {
+    if (sidPromise) {
+        return sidPromise;
+    } else {
+        // Fill array arrSID if it is empty
+        sidPromise = new Promise(resolve => {
+            adapter.getStatesOf(`upnp.${adapter.instance}`, (err, _states) => {
+                const sids = [];
+                const alives = [];
+                err && adapter.log.error('Cannot get SIDs: ' + err);
+                if (_states) {
+                    _states.forEach(obj => {
+                        if (obj._id.match(/\.sid$/)) {
+                            // if the match deliver an id of an object add them to the array
+                            sids.push(obj._id);
+                        } else
+                        if (obj._id.match(/\.Alive/g)) {
+                            alives.push(obj._id);
+                        }
+                    });
                 }
-            } //END for
-        } //END if
-    }); //END adapter.getStatesOf()
+
+                // adapter.log.debug('Array arrSID is now filled');
+                // When the array is filled start the search
+                resolve({sids, alives});
+            });
+        });
+        return sidPromise;
+    }
 }
 
 // control the devices
@@ -1616,7 +1634,7 @@ function sendCommand(id, cb) {
                         args.push(obj);
                     }
 
-                } //END for
+                }
 
                 let body = '';
 
@@ -1664,7 +1682,7 @@ function sendCommand(id, cb) {
                                 helperBody[argNo] = '<' + argName + '>' + testResult2 + '</' + argName + '>';
                             }
                         }
-                    } //END for
+                    }
 
                     //convert helperBody array to string and add it to main body string
                     helperBody = helperBody.toString().replace(/,/g, '');
@@ -1848,19 +1866,23 @@ function main() {
                 sendBroadcast();
             }
 
-            // Filtering the Device description file addresses, timeout is necessary to wait for all answers
-            setTimeout(() => {
-                adapter.log.debug('Found ' + foundIPs.length + ' devices');
-                if (adapter.config.rootXMLurl) {
-                    firstDevLookup(adapter.config.rootXMLurl);
-                }
-                reschedule();
-            }, 5000);
+            // read SIDs and Alive IDs
+            getIDs()
+                .then(result => {
+                    adapter.log.debug(`Read ${result.sids.length} SIDs and ${result.alives.length} alives`);
 
-            createAliveArr();
+                    // Filtering the Device description file addresses, timeout is necessary to wait for all answers
+                    setTimeout(() => {
+                        adapter.log.debug('Found ' + foundIPs.length + ' devices');
+                        if (adapter.config.rootXMLurl) {
+                            firstDevLookup(adapter.config.rootXMLurl);
+                        }
+                        reschedule();
+                    }, 5000);
 
-            //start the server
-            startServer();
+                    //start the server
+                    startServer();
+                });
         });
 }
 
