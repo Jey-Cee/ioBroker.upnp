@@ -1,48 +1,49 @@
 {
-    "name": "iobroker.upnp",
-    "version": "0.3.9",
-    "description": "upnp is looking for upnp devices on Local Network",
-    "author": {
-        "name": "Jey Cee",
-        "email": "jey-cee@live.com"
-    },
-    "contributors": [
-        {
-            "name": "Jey Cee",
-            "email": "jey-cee@live.com"
-        }
-    ],
-    "homepage": "https://github.com/Jey-Cee/ioBroker.upnp",
-    "license": "MIT",
-    "keywords": [
-        "ioBroker",
-        "upnp",
-        "Smart Home",
-        "home automation"
-    ],
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/Jey-Cee/ioBroker.upnp"
-    },
-    "dependencies": {
-        "node-ssdp": "^3.3.0",
-        "portfinder": "^1.0.13",
-        "parsexmlresponse": "^0.0.5",
-        "xml2js": "0.4.15",
-        "request": "2.67.0",
-        "ip": "^1.1.5"
-    },
-    "devDependencies": {
-        "gulp": "^3.9.1",
-        "mocha": "^4.1.0",
-        "chai": "^4.1.2"
-    },
-    "bugs": {
-        "url": "https://github.com/Jey-Cee/ioBroker.upnp/issues"
-    },
-    "readmeFilename": "README.md",
-    "main": "main.js",
-    "scripts": {
-        "test": "node node_modules/mocha/bin/mocha --exit"
+  "name": "iobroker.upnp",
+  "version": "0.3.9",
+  "description": "upnp is looking for upnp devices on Local Network",
+  "author": {
+    "name": "Jey Cee",
+    "email": "jey-cee@live.com"
+  },
+  "contributors": [
+    {
+      "name": "Jey Cee",
+      "email": "jey-cee@live.com"
     }
+  ],
+  "homepage": "https://github.com/Jey-Cee/ioBroker.upnp",
+  "license": "MIT",
+  "keywords": [
+    "ioBroker",
+    "upnp",
+    "Smart Home",
+    "home automation"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Jey-Cee/ioBroker.upnp"
+  },
+  "dependencies": {
+    "node-ssdp": "^3.3.0",
+    "portfinder": "^1.0.13",
+    "parsexmlresponse": "^0.0.5",
+    "xml2js": "0.4.15",
+    "request": "2.67.0",
+    "ip": "^1.1.5"
+  },
+  "devDependencies": {
+    "gulp": "^3.9.1",
+    "mocha": "^4.1.0",
+    "chai": "^4.1.2",
+    "@iobroker/adapter-core": "^1.0.3"
+  },
+  "bugs": {
+    "url": "https://github.com/Jey-Cee/ioBroker.upnp/issues"
+  },
+  "readmeFilename": "README.md",
+  "main": "main.js",
+  "scripts": {
+    "test": "node node_modules/mocha/bin/mocha --exit"
+  }
 }
