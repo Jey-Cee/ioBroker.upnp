@@ -214,6 +214,11 @@ function firstDevLookup(strLocation, cb) {
             adapter.log.debug('Positive answer for request of the XML file for ' + strLocation);
 
             try {
+                body = (body || '').toString()
+                    .replace(/[\n\r]/g, '\\n')
+                    .replace(/&/g,'&amp;')
+                    .replace(/-/g,'&#45;');
+
                 parseString(body, {explicitArray: true, mergeAttrs: true}, (err, result) => {
                     let path;
                     let xmlDeviceType;

@@ -1,9 +1,21 @@
 {
     "common": {
         "name": "upnp",
-        "version": "1.0.7",
+        "version": "1.0.8",
         "title": "UPnP",
         "news": {
+            "1.0.8": {
+                "en": "Invalid characters in XML will be replaced",
+                "de": "Ungültige Zeichen in XML werden ersetzt",
+                "ru": "Неверные символы в XML будут заменены",
+                "pt": "Caracteres inválidos em XML serão substituídos",
+                "nl": "Ongeldige tekens in XML worden vervangen",
+                "fr": "Les caractères invalides dans XML seront remplacés",
+                "it": "I caratteri non validi in XML verranno sostituiti",
+                "es": "Los caracteres inválidos en XML serán reemplazados",
+                "pl": "Nieprawidłowe znaki w XML zostaną zastąpione",
+                "zh-cn": "XML中的无效字符将被替换"
+            },
             "1.0.7": {
                 "en": "Commands will not be called parallel",
                 "de": "Befehle werden nicht parallel aufgerufen",
