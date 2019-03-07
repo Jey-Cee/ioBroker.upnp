@@ -1,6 +1,6 @@
 {
     "name": "iobroker.upnp",
-    "version": "1.0.9",
+    "version": "1.0.10",
     "description": "UPnP is looking for UPnP devices on Local Network",
     "author": {
         "name": "Jey Cee",
@@ -31,7 +31,8 @@
         "parsexmlresponse": "^0.0.5",
         "portfinder": "^1.0.20",
         "request": "^2.88.0",
-        "xml2js": "^0.4.19"
+        "xml2js": "^0.4.19",
+        "@iobroker/adapter-core": "^1.0.3"
     },
     "devDependencies": {
         "gulp": "^4.0.0",

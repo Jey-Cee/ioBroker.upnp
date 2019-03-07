@@ -1,7 +1,7 @@
 'use strict';
 
 // you have to require the utils module and call adapter function
-const utils = require('./lib/utils'); // Get common adapter utils
+const utils = require('@iobroker/adapter-core'); // Get common adapter utils
 const adapterName = require('./package.json').name.split('.').pop();
 
 // include node-ssdp and node-upnp-subscription

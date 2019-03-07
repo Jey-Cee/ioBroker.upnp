@@ -220,7 +220,7 @@ You can enable polling in admin via objects configuration.
 **Amazon Kindle:** Provides an UPnP service, but no UPnP service description is provided and therefore cannot be used.
 
 ## Changelog
-### 1.0.9 (2019-03-06)
+### 1.0.10 (2019-03-06)
 * (bluefox) Invalid characters in XML will be replaced
 
 ### 1.0.7 (2019-03-01)
