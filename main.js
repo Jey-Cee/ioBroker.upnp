@@ -215,7 +215,7 @@ function firstDevLookup(strLocation, cb) {
 
             try {
                 body = (body || '').toString()
-                    .replace(/[\n\r]/g, '\\n')
+                    .replace(/[\n\r]/g, '\n')
                     .replace(/&/g,'&amp;')
                     .replace(/-/g,'&#45;');
 
