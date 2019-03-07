@@ -8,6 +8,7 @@ const adapterName = require('./package.json').name.split('.').pop();
 const {Client, Server} = require('node-ssdp');
 const Subscription = require('./lib/upnp-subscription');
 const parseString = require('xml2js').parseString;
+const DOMParser = require('xmldom').DOMParser;
 const request = require('request');
 const nodeSchedule = require('node-schedule');
 
@@ -214,12 +215,9 @@ function firstDevLookup(strLocation, cb) {
             adapter.log.debug('Positive answer for request of the XML file for ' + strLocation);
 
             try {
-                body = (body || '').toString()
-                    .replace(/[\n\r]/g, '\n')
-                    .replace(/&/g,'&amp;')
-                    .replace(/-/g,'&#45;');
+                const xmlStringSerialized = new DOMParser().parseFromString((body || '').toString(), 'text/xml');
 
-                parseString(body, {explicitArray: true, mergeAttrs: true}, (err, result) => {
+                parseString(xmlStringSerialized, {explicitArray: true, mergeAttrs: true}, (err, result) => {
                     let path;
                     let xmlDeviceType;
                     let xmlTypeOfDevice;

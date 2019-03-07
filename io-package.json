@@ -1,10 +1,10 @@
 {
     "common": {
         "name": "upnp",
-        "version": "1.0.10",
+        "version": "1.0.11",
         "title": "UPnP",
         "news": {
-            "1.0.10": {
+            "1.0.11": {
                 "en": "Invalid characters in XML will be replaced",
                 "de": "Ungültige Zeichen in XML werden ersetzt",
                 "ru": "Неверные символы в XML будут заменены",
