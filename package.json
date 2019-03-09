@@ -1,52 +1,52 @@
 {
-    "name": "iobroker.upnp",
-    "version": "1.0.11",
-    "description": "UPnP is looking for UPnP devices on Local Network",
-    "author": {
-        "name": "Jey Cee",
-        "email": "jey-cee@live.com"
-    },
-    "contributors": [
-        {
-            "name": "Jey Cee",
-            "email": "jey-cee@live.com"
-        }
-    ],
-    "homepage": "https://github.com/iobroker-community-adapters/ioBroker.upnp",
-    "license": "MIT",
-    "keywords": [
-        "ioBroker",
-        "upnp",
-        "Smart Home",
-        "home automation"
-    ],
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/iobroker-community-adapters/ioBroker.upnp"
-    },
-    "dependencies": {
-        "@iobroker/adapter-core": "^1.0.3",
-        "ip": "^1.1.5",
-        "node-schedule": "^1.3.0",
-        "node-ssdp": "^4.0.0",
-        "parsexmlresponse": "^0.0.5",
-        "portfinder": "^1.0.20",
-        "request": "^2.88.0",
-        "xml2js": "^0.4.19",
-        "xmldom": "^0.1.27"
-    },
-    "devDependencies": {
-        "gulp": "^4.0.0",
-        "axios": "^0.18.0",
-        "mocha": "^6.0.2",
-        "chai": "^4.2.0"
-    },
-    "bugs": {
-        "url": "https://github.com/iobroker-community-adapters/ioBroker.upnp/issues"
-    },
-    "readmeFilename": "README.md",
-    "main": "main.js",
-    "scripts": {
-        "test": "node node_modules/mocha/bin/mocha --exit"
+  "name": "iobroker.upnp",
+  "version": "1.0.11",
+  "description": "UPnP is looking for UPnP devices on Local Network",
+  "author": {
+    "name": "Jey Cee",
+    "email": "jey-cee@live.com"
+  },
+  "contributors": [
+    {
+      "name": "Jey Cee",
+      "email": "jey-cee@live.com"
     }
+  ],
+  "homepage": "https://github.com/iobroker-community-adapters/ioBroker.upnp",
+  "license": "MIT",
+  "keywords": [
+    "ioBroker",
+    "upnp",
+    "Smart Home",
+    "home automation"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/iobroker-community-adapters/ioBroker.upnp"
+  },
+  "dependencies": {
+    "@iobroker/adapter-core": "^1.0.3",
+    "ip": "^1.1.5",
+    "node-schedule": "^1.3.0",
+    "node-ssdp": "^4.0.0",
+    "parsexmlresponse": "^0.0.5",
+    "portfinder": "^1.0.20",
+    "request": "^2.88.0",
+    "xml2js": "^0.4.19",
+    "xmldom": "^0.1.27"
+  },
+  "devDependencies": {
+    "gulp": "^4.0.0",
+    "axios": "^0.18.0",
+    "mocha": "^6.0.2",
+    "chai": "^4.2.0"
+  },
+  "bugs": {
+    "url": "https://github.com/iobroker-community-adapters/ioBroker.upnp/issues"
+  },
+  "readmeFilename": "README.md",
+  "main": "main.js",
+  "scripts": {
+    "test": "node node_modules/mocha/bin/mocha --exit"
+  }
 }
