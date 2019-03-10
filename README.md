@@ -2,7 +2,7 @@
 # ioBroker.upnp
 
 [![Greenkeeper badge](https://badges.greenkeeper.io/iobroker-community-adapters/ioBroker.upnp.svg)](https://greenkeeper.io/)
-![Logo](http://img.shields.io/npm/v/iobroker.upnp.svg) ![Image](https://travis-ci.org/Jey-Cee/ioBroker.upnp.svg?branch=master)
+![Number of Installations](http://iobroker.live/badges/upnp-installed.svg) ![Number of Installations](http://iobroker.live/badges/upnp-stable.svg) ![Logo](http://img.shields.io/npm/v/iobroker.upnp.svg) ![Image](https://travis-ci.org/Jey-Cee/ioBroker.upnp.svg?branch=master)
 
 IMPORTANT: This Adapter is BETA state.
 
