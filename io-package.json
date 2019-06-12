@@ -1,9 +1,21 @@
 {
     "common": {
         "name": "upnp",
-        "version": "1.0.11",
+        "version": "1.0.12",
         "title": "UPnP",
         "news": {
+            "1.0.12": {
+                "en": "Attempt to fix error with media-player",
+                "de": "Es wurde versucht, einen Fehler mit dem Media-Player zu beheben",
+                "ru": "Попытка исправить ошибку с медиапроигрывателем",
+                "fr": "Tentative de corriger une erreur avec le lecteur multimédia",
+                "nl": "Poging om fouten te herstellen met mediaspeler",
+                "pt": "Tente corrigir o erro com o media player",
+                "es": "Intenta arreglar un error con media-player",
+                "it": "Tentativo di correggere l'errore con il lettore multimediale",
+                "pl": "Próba naprawienia błędu w odtwarzaczu multimedialnym",
+                "zh-cn": "尝试修复媒体播放器的错误"
+            },
             "1.0.11": {
                 "en": "Invalid characters in XML will be replaced",
                 "de": "Ungültige Zeichen in XML werden ersetzt",
@@ -28,18 +40,6 @@
                 "pl": "Polecenia nie będą nazywane równoległymi",
                 "zh-cn": "命令不会被并行调用"
             },
-            "0.3.8": {
-                "en": "changes for object name's; fix for empty USN",
-                "de": "Änderungen für Objektnamen; fix für leere USN",
-                "ru": "изменения для имени объекта; исправить пустое USN",
-                "pt": "mudanças para o nome do objeto; corrigir para USN vazio",
-                "nl": "veranderingen voor objectnamen; repareren voor lege USN",
-                "fr": "changements pour le nom de l'objet; réparer pour USN vide",
-                "it": "modifiche per il nome dell'oggetto; correzione per USN vuoto",
-                "es": "cambios para el nombre del objeto; arreglar para USN vacío",
-                "pl": "zmiany dla nazwy obiektu; poprawka dla pustego USN",
-                "zh-cn": "对象名称的更改;"
-            },
             "0.3.9": {
                 "en": "fix auto discover\n",
                 "de": "automatische Erkennung beheben\n",
@@ -54,26 +54,26 @@
             }
         },
         "desc": {
-            "en": "ioBroker UPnP Adapter",
-            "de": "ioBroker UPnP Adapter",
-            "ru": "ioBroker UPnP драйвер",
-            "pt": "Adaptador UPnP ioBroker",
-            "nl": "ioBroker UPnP-adapter",
-            "fr": "Adaptateur UPnP ioBroker",
-            "it": "ioBroker UPnP Adapter",
-            "es": "Adaptador ioBroker UPnP",
-            "pl": "Adapter OBroker UPnP",
-            "zh-cn": "ioBroker UPnP适配器"
+            "en": "Discover and control devices that support UPnP",
+            "ru": "Обнаружение и управление устройствами, поддерживающих UPnP",
+            "de": "Ermitteln und steuern die Geräte, die UPnP unterstützen",
+            "pt": "Descubra e controle dispositivos que suportam UPnP",
+            "fr": "Découverte et contrôle des périphériques prenant en charge UPnP",
+            "nl": "Apparaten ontdekken en bedienen die UPnP ondersteunen",
+            "es": "Descubrir y controlar dispositivos compatibles con UPnP.",
+            "it": "Scopri e controlla i dispositivi che supportano UPnP",
+            "pl": "Odkrywaj i kontroluj urządzenia obsługujące UPnP",
+            "zh-cn": "发现和控制支持UPnP的设备"
         },
         "platform": "Javascript/Node.js",
         "license": "MIT",
         "mode": "daemon",
-        "icon": "upnp-discovery.png",
+        "icon": "upnp.png",
         "materialize": true,
         "keywords": [
             "upnp"
         ],
-        "extIcon": "https://raw.githubusercontent.com/iobroker-community-adapters/ioBroker.upnp/master/admin/upnp-discovery.png",
+        "extIcon": "https://raw.githubusercontent.com/iobroker-community-adapters/ioBroker.upnp/master/admin/upnp.png",
         "readme": "https://github.com/iobroker-community-adapters/ioBroker.upnp/blob/master/README.md",
         "loglevel": "info",
         "type": "network",
