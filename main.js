@@ -1384,7 +1384,7 @@ function setNewState(state, serviceID, data, cb) {
                 newStates = data.body['e:propertyset']['e:property'].LastChange;
             }
 
-            let newStates2 = JSON.stringify(newStates);
+            let newStates2 = JSON.stringify(newStates) || '';
 
             // TODO: Must be refactored
             if (newStates2 === undefined){
@@ -1522,19 +1522,19 @@ function valLookup(strState) {
 //convert the event JSON into an array
 function convertEventObject(result) {
     const regex = new RegExp(/"\w*":\[{"\$":{("\w*":"(\w*:\w*:\w*|(\w*,\s\w*)*|\w*)"(,"\w*":"\w*")*)}/ig);
-    return JSON.stringify(result).match(regex);
+    return (JSON.stringify(result) || '').match(regex);
 }
 
 //convert the initial message JSON into an array
 function convertInitialObject(result) {
     const regex = new RegExp(/"\w*":"(\w*|\w*\D\w*|(\w*-)*\w*:\w*|(\w*,\w*)*|\w*:\S*\*)"/g);
-    return JSON.stringify(result).match(regex);
+    return (JSON.stringify(result) || '').match(regex);
 }
 
 //convert the initial message JSON into an array for windows media player/server
 function convertWM(result) {
     const regex = new RegExp(/"\w*":{".":"(\w*"|((http-get:\*:\w*\/((\w*\.)*|(\w*-)*|(\w*\.)*(\w*-)*)\w*:\w*\.\w*=\w*(,)*)*((http-get|rtsp-rtp-udp):\*:\w*\/(\w*(\.|-))*\w*:\*(,)*)*))/g);
-    return JSON.stringify(result).match(regex);
+    return (JSON.stringify(result) || '').match(regex);
 }
 
 //END Event listener
@@ -1638,7 +1638,6 @@ function sendCommand(id, cb) {
                     if (testResult && argumentsOfAction !== id) {
                         args.push(obj);
                     }
-
                 }
 
                 let body = '';
