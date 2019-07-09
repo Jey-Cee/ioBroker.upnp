@@ -1387,7 +1387,9 @@ function setNewState(state, serviceID, data, cb) {
             let newStates2 = JSON.stringify(newStates);
 
             // TODO: Must be refactored
-            if (newStates2.match(/<Event.*/ig)) {
+            if (newStates2 === undefined){
+                adapter.log.info('State: ' + state + ' Service ID: ' + serviceID + ' Data: ' + JSON.stringify(data));
+            }else if (newStates2.match(/<Event.*/ig)) {
                 parseString(newStates, (err, result) => {
                     let states = convertEventObject(result['Event']);
                     // split every array member into state name and value, then push it to ioBroker state
