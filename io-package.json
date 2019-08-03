@@ -1,10 +1,10 @@
 {
     "common": {
         "name": "upnp",
-        "version": "1.0.13",
+        "version": "1.0.14",
         "title": "UPnP",
         "news": {
-            "1.0.13": {
+            "1.0.14": {
                 "en": "Attempt to fix error with media-player",
                 "de": "Es wurde versucht, einen Fehler mit dem Media-Player zu beheben",
                 "ru": "Попытка исправить ошибку с медиапроигрывателем",

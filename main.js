@@ -1380,8 +1380,8 @@ function setNewState(state, serviceID, data, cb) {
 
             if (newStates && newStates.LastChange && newStates.LastChange._) {
                 newStates = newStates.LastChange._;
-            } else {
-                newStates = data.body['e:propertyset']['e:property'].LastChange;
+            } else if (newStates) {
+                newStates = newStates.LastChange;
             }
 
             let newStates2 = JSON.stringify(newStates) || '';
