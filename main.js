@@ -945,7 +945,7 @@ function createServiceStateTable(result, service) {
                         type: dataType,
                         role: 'state',
                         read: true,
-                        write: false
+                        write: true
                     },
                     native: {
                         name: xmlName,
@@ -1073,7 +1073,7 @@ function createArgumentList(result, service, actionName, action_number, path) {
                     type: 'string',
                     def: '',
                     read: true,
-                    write: false
+                    write: true
                 },
                 native: {
                     direction: xmlDirection,
