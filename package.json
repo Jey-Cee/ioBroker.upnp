@@ -1,6 +1,6 @@
 {
   "name": "iobroker.upnp",
-  "version": "1.0.14",
+  "version": "1.0.15",
   "description": "UPnP is looking for UPnP devices on Local Network",
   "author": {
     "name": "Jey Cee",

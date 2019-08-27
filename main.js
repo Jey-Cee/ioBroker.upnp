@@ -1314,6 +1314,7 @@ function listener(eventUrl, channelID, infoSub) {
     });
 
     infoSub.on('message', data => {
+        adapter.log.debug('Listener message: ' + JSON.stringify(data));
         variableTimeout += 5;
 
         setTimeout(() =>
@@ -1366,22 +1367,27 @@ function lookupService(data, SIDs, cb) {
 }
 
 function setNewState(state, serviceID, data, cb) {
+    adapter.log.debug('setNewState: ' + state + ' ' + JSON.stringify(data));
     // Extract the value of the state
     let valueSID = state.val;
 
     if (valueSID !== null && valueSID !== undefined) {
         valueSID = valueSID.toString().toLowerCase();
-
+        adapter.log.info('if valueSID: ' + valueSID + ' ' + data.sid.toString().toLowerCase());
         if (valueSID.indexOf(data.sid.toString().toLowerCase()) !== -1) {
             serviceID = serviceID.replace(/\.sid$/, '');
-
+            adapter.log.info('if valueSID 2');
             // Select sub element with States
             let newStates = data.body['e:propertyset']['e:property'];
 
             if (newStates && newStates.LastChange && newStates.LastChange._) {
                 newStates = newStates.LastChange._;
+                adapter.log.info('Number 1: ' + newStates);
             } else if (newStates) {
                 newStates = newStates.LastChange;
+                adapter.log.info('Number 2: ' + newStates);
+            } else {
+                adapter.log.info('Number 3: ' + newStates);
             }
 
             let newStates2 = JSON.stringify(newStates) || '';
@@ -1592,8 +1598,10 @@ function sendCommand(id, cb) {
     parts.pop();
     let actionName = parts.pop();
     let service = parts.join('.');
+    id = id.replace('.request', '');
 
     adapter.getObject(service, (err, obj) => {
+
         let vServiceType = obj.native.serviceType;
         let serviceName = obj.native.name;
         let device = service.replace(`.${serviceName}`, '');
@@ -1644,6 +1652,7 @@ function sendCommand(id, cb) {
 
                 // get all states of the arguments as string
                 adapter.getStates(`${id}.*`, (err, idStates) => {
+                    adapter.log.debug('get all states of the arguments as string ');
                     let helperBody = [];
                     let states = JSON.stringify(idStates);
                     states = states.replace(/,"ack":\w*,"ts":\d*,"q":\d*,"from":"(\w*\.)*(\d*)","lc":\d*/g, '');
@@ -1726,10 +1735,10 @@ function createMessage(sType, aName, _ip, _port, cURL, body, actionID, cb) {
 
     const contentType = 'text/xml; charset="utf-8"';
     let soapAction = `${sType}#${aName}`;
-    let postData = `
-<s:Envelope s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\" xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\">
-    <s:Body>${body}</s:Body>
-</s:Envelope>`;
+    let postData = ` 
+        <s:Envelope s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\" xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\">
+            <s:Body>${body}</s:Body>
+        </s:Envelope>`;
 
     //Options for the SOAP message
     let options = {
@@ -1745,7 +1754,7 @@ function createMessage(sType, aName, _ip, _port, cURL, body, actionID, cb) {
 
     // Send Action message to Device/Service
     request(options, (err, res, body) => {
-        adapter.log.debug('response: ' + body);
+        adapter.log.debug('Options for request: ' + JSON.stringify(options));
         if (err) {
             adapter.log.warn(`Error sending SOAP request: ${err}`);
         } else {
