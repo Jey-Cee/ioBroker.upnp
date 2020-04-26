@@ -1146,7 +1146,38 @@ function _processTasks() {
             readSCPD(task.SCPDlocation, task.service, () => setTimeout(_processTasks, 0));
         } else
         if (task.name === 'setObjectNotExists') {
-            if(task.obj.common.name){
+            if(task.obj.common.type){
+                switch (task.obj.common.type){
+                    case 'bool':
+                        task.obj.common.type = 'boolean';
+                        break;
+                    case 'i1':
+                    case 'i2':
+                    case 'i4':
+                    case 'ui1':
+                    case 'ui2':
+                    case 'ui4':
+                    case 'int':
+                    case 'r4':
+                    case 'r8':
+                    case 'fixed.14.4':
+                    case 'fixed':
+                    case 'float':
+                        task.obj.common.type = 'number';
+                        break;
+                    case 'char string':
+                    case 'date':
+                    case 'dateTime':
+                    case 'dateTime.tz':
+                    case 'time':
+                    case 'time.tz':
+                    case 'bin.base64':
+                    case 'bin.hex':
+                    case 'uri':
+                    case 'uuid':
+                        task.obj.common.type = 'string';
+                        break;
+                }
                 if(task.obj.common.name === 'bool'){
                     task.obj.common.name = 'boolean';
                 }
