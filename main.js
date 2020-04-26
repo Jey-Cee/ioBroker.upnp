@@ -1252,7 +1252,7 @@ function startServer() {
                     }
 
                     if (!foundUUID && adapter.config.enableAutoDiscover) {
-                        adapter.log.info(`Found new device: ${location}`);
+                        adapter.log.debug(`Found new device: ${location}`);
                         addTask({name: 'firstDevLookup', location});
                     } else {
                         const pos = discoveredDevices.indexOf(location);
