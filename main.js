@@ -1366,7 +1366,7 @@ function listener(eventUrl, channelID, infoSub) {
     });
 
     infoSub.on('error', err => {
-        adapter.log.warn(`Subscription error: ` + JSON.stringify(err));
+        adapter.log.debug(`Subscription error: ` + JSON.stringify(err));
         // subscription.unsubscribe();
     });
 
