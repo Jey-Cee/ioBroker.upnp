@@ -1747,7 +1747,7 @@ function sendCommand(id, cb) {
 
 function readSchedules() {
     return new Promise(resolve => {
-        adapter.objects.getObjectView('custom', 'state', {startkey: adapter.namespace + '.', endkey: adapter.namespace + '.\uFFFF'}, (err, doc) => {
+       adapter.getObjectView('custom', 'state', {startkey: adapter.namespace + '.', endkey: adapter.namespace + '.\uFFFF'}, (err, doc) => {
             if (doc && doc.rows) {
                 for (let i = 0, l = doc.rows.length; i < l; i++) {
                     if (doc.rows[i].value) {
