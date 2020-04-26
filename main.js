@@ -1146,6 +1146,11 @@ function _processTasks() {
             readSCPD(task.SCPDlocation, task.service, () => setTimeout(_processTasks, 0));
         } else
         if (task.name === 'setObjectNotExists') {
+            if(task.obj.common.name){
+                if(task.obj.common.name === 'bool'){
+                    task.obj.common.name = 'boolean';
+                }
+            }
             adapter.setObjectNotExists(task.id, task.obj, () => {
                 if (task.obj.type === 'state' && task.id.match(/\.sid$/)) {
                     adapter.getState(task.id, (err, state) => {
@@ -1205,7 +1210,7 @@ function startServer() {
                             addTask({
                                 name: 'setState',
                                 id: `${devices[i]._id}.Alive`,
-                                state: {val: true, ack: true, expire: maxAge}
+                                state: {val: true, ack: true, expire: parseInt(maxAge)}
                             });
                             addTask({name: 'subscribeEvent', deviceID: devices[i]._id});
                         }
