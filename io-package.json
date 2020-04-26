@@ -1,9 +1,12 @@
 {
     "common": {
         "name": "upnp",
-        "version": "1.0.15",
+        "version": "1.0.16",
         "title": "UPnP",
         "news": {
+            "1.0.16": {
+                "en": "fixes for js-controller 3"
+            },
             "1.0.15": {
                 "en": "make control of devices work again (including player controls)"
             },
