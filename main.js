@@ -1295,7 +1295,7 @@ function startServer() {
                             state: {val: false, ack: true}
                         });
                     }
-                } 
+                }
                 processTasks();
             }); //END adapter.getDevices()
         }
@@ -1305,7 +1305,7 @@ function startServer() {
 }
 
 // Subscribe to every service that is alive. Triggered by change alive from false/null to true.
-function subscribeEvent(id, cb) {
+async function subscribeEvent(id, cb) {
     const service = id.replace(/\.Alive/ig, '');
     if (adapter.config.enableAutoSubscription === true) {
         adapter.getObject(service, (err, obj) => {
@@ -1315,13 +1315,15 @@ function subscribeEvent(id, cb) {
             parts.pop();
             const channelID = parts.join('.');
 
-            adapter.getChannelsOf(channelID, (err, channels) => {
+            adapter.getChannelsOf(channelID, async (err, channels) => {
                 for (let x = channels.length - 1; x >= 0; x--) {
                     const eventUrl = getValueFromArray(channels[x].native.eventSubURL).replace(/"/g, '');
-                    try {
-                        const infoSub = new Subscription(deviceIP, devicePort, eventUrl, 1000);
-                        listener(eventUrl, channels[x]._id, infoSub);
-                    } catch (err) {
+                    if(channels[x].native.serviceType) {
+                        try {
+                            const infoSub = new Subscription(deviceIP, devicePort, eventUrl, 1000);
+                            listener(eventUrl, channels[x]._id, infoSub);
+                        } catch (err) {
+                        }
                     }
                 }
                 cb();
@@ -1339,7 +1341,6 @@ function listener(eventUrl, channelID, infoSub) {
 
     infoSub.on('subscribed', data => {
         variableTimeout += 5;
-
         setTimeout(() => adapter.setState(channelID + '.sid', {val: ((data && data.sid) || '').toString(), ack: true}), variableTimeout);
 
         resetTimeoutTimer && clearTimeout(resetTimeoutTimer);
@@ -1409,10 +1410,8 @@ function setNewState(state, serviceID, data, cb) {
 
     if (valueSID !== null && valueSID !== undefined) {
         valueSID = valueSID.toString().toLowerCase();
-        adapter.log.info('if valueSID: ' + valueSID + ' ' + data.sid.toString().toLowerCase());
         if (valueSID.indexOf(data.sid.toString().toLowerCase()) !== -1) {
             serviceID = serviceID.replace(/\.sid$/, '');
-            adapter.log.info('if valueSID 2');
             // Select sub element with States
             let newStates = data.body['e:propertyset']['e:property'];
 

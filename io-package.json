@@ -1,9 +1,12 @@
 {
     "common": {
         "name": "upnp",
-        "version": "1.0.16",
+        "version": "1.0.17",
         "title": "UPnP",
         "news": {
+            "1.0.17": {
+                "en": "fix warning messages with js-controller 3.2.x"
+            },
             "1.0.16": {
                 "en": "fixes for js-controller 3"
             },
