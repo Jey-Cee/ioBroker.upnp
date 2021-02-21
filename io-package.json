@@ -89,6 +89,8 @@
         "messagebox": true,
         "supportCustoms": true,
         "subscribe": "messagebox",
+        "connectionType": "local",
+        "dataSource": "push",
         "authors": [
             {
                 "name": "Jey Cee",
