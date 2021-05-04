@@ -12,15 +12,11 @@ const DOMParser = require('xmldom').DOMParser;
 const request = require('request');
 const nodeSchedule = require('node-schedule');
 
-// include UPnP Player
-const player = require('./lib/player');
 let adapter;
 let client = new Client();
-player.registerTasksHandler(addTask, processTasks);
 
 const tasks = [];
 let taskRunning = false;
-let playerTimer = null;
 const actions = {}; // scheduled actions
 const crons = {};
 const checked = {}; // store checked objects for polling
@@ -94,8 +90,6 @@ function startAdapter(options) {
     // is called when adapter shuts down - callback has to be called under any circumstances!
     adapter.on('unload', callback => {
         try {
-            playerTimer && clearTimeout(playerTimer);
-            playerTimer = null;
             server.stop(); // advertise shutting down and stop listening
             adapter.log.info('cleaned everything up...');
             clearAliveAndSIDStates(callback);
@@ -130,10 +124,6 @@ function startAdapter(options) {
 
         // Subscribe to an service when its state Alive is true
 
-        // Upnp Player controls
-        if (id.match(/\.Player\./)) {
-            player.main(id, state);
-        } else
         if (id.match(/\.request$/)) {
             // Control a device when a related object changes its value
             if (checked[id] !== undefined) {
@@ -154,10 +144,6 @@ function startAdapter(options) {
     // is called when databases are connected and adapter received configuration.
     // start here!
     adapter.on('ready', () => {
-        if (adapter.config.enableSimplePlayerControls) {
-            player.getAdapter(adapter);
-            player.createPlayerStates();
-        }
         main();
     });
 
@@ -706,12 +692,6 @@ function firstDevLookup(strLocation, cb) {
             cb && cb();
         }
 
-        if (adapter.config.enableSimplePlayerControls && !playerTimer) {
-            playerTimer = setTimeout(() => {
-                playerTimer = null;
-                player.createPlayerStates();
-            }, 5000);
-        }
     });
 }
 
