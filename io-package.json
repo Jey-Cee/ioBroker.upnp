@@ -100,8 +100,7 @@
     },
     "native": {
         "enableAutoDiscover": "",
-        "enableAutoSubscription": "",
-        "enableSimplePlayerControls": "false"
+        "enableAutoSubscription": ""
     },
     "instanceObjects": [
     ]

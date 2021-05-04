@@ -1484,6 +1484,9 @@ function setNewState(state, serviceID, data, cb) {
 function writeState(sID, sname, val, cb) {
     adapter.getObject(`${sID}.A_ARG_TYPE_${sname}`, (err, obj) => {
         if (obj) {
+            if(obj.common.type === 'number'){
+                val = parseInt(val);
+            }
             adapter.setState(`${sID}.A_ARG_TYPE_${sname}`, {val: val, ack: true}, err => {
                 adapter.getObject(`${sID}.${sname}`, (err, obj) => {
                     if (obj) {
@@ -1496,6 +1499,9 @@ function writeState(sID, sname, val, cb) {
         } else {
             adapter.getObject(`${sID}.${sname}`, (err, obj) => {
                 if (obj) {
+                    if(obj.common.type === 'number'){
+                        val = parseInt(val);
+                    }
                     adapter.setState(`${sID}.${sname}`, {val: val, ack: true}, cb);
                 } else {
                     cb();
@@ -1831,6 +1837,10 @@ function syncArgument(actionID, argID, argValue, cb) {
             let relatedStateVariable = obj.native.relatedStateVariable;
             let serviceID = actionID.replace(/\.\w*$/, '');
             let relStateVarID = serviceID + '.' + relatedStateVariable;
+            let val = argValue;
+            if(obj.common.type === 'number'){
+                val = parseInt(argValue);
+            }
             adapter.setState(relStateVarID, {val: argValue, ack: true}, cb);
         } else {
             cb && cb();
