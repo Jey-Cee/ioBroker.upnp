@@ -1766,7 +1766,7 @@ function createMessage(sType, aName, _ip, _port, cURL, body, actionID, cb) {
         uri: url,
         headers: {
             'Content-Type': contentType,
-            'SOAPAction': '"' + soapAction + '"',
+            'SOAPAction': `"${soapAction}"`,
             'USER-AGENT': UA
         },
         method: 'POST',
@@ -1911,7 +1911,7 @@ function main() {
 
                     // Filtering the Device description file addresses, timeout is necessary to wait for all answers
                     setTimeout(() => {
-                        adapter.log.debug('Found ' + foundIPs.length + ' devices');
+                        adapter.log.debug(`Found ${foundIPs.length} devices`);
                         if (adapter.config.rootXMLurl) {
                             firstDevLookup(adapter.config.rootXMLurl);
                         }

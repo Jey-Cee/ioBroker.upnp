@@ -1,0 +1,14 @@
+{
+    "type": "panel",
+    "hidden": "!customObj || !customObj._id.startsWith('upnp.') || !customObj.common || customObj.common.role !== 'button' || !customObj.native || !customObj.native.request",
+    "items": {
+        "schedule": {
+            "type": "cron",
+            "simple": true,
+            "complex": true,
+            "label": "Schedule",
+            "help": "CRON rule",
+            "default": "* * * * *"
+        }
+    }
+}

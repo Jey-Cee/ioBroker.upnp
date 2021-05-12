@@ -91,6 +91,10 @@
         "subscribe": "messagebox",
         "connectionType": "local",
         "dataSource": "push",
+        "adminUI": {
+            "custom": "json",
+            "config": "materialize"
+        },
         "authors": [
             {
                 "name": "Jey Cee",
