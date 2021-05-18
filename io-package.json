@@ -1,9 +1,21 @@
 {
     "common": {
         "name": "upnp",
-        "version": "1.0.17",
+        "version": "1.0.18",
         "title": "UPnP",
         "news": {
+            "1.0.18": {
+                "en": "added support for Admin5",
+                "de": "Unterstützung für Admin5 hinzugefügt",
+                "ru": "добавлена поддержка Admin5",
+                "pt": "adicionado suporte para Admin5",
+                "nl": "ondersteuning toegevoegd voor Admin5",
+                "fr": "Ajout du support pour Admin5",
+                "it": "aggiunto il supporto per Admin5",
+                "es": "soporte agregado para Admin5",
+                "pl": "dodane wsparcie dla Admin5",
+                "zh-cn": "增加了对Admin5的支持"
+            },
             "1.0.17": {
                 "en": "fix warning messages with js-controller 3.2.x"
             },
@@ -117,6 +129,5 @@
             }
         }
     ],
-    "instanceObjects": [
-    ]
+    "instanceObjects": []
 }
