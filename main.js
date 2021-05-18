@@ -86,7 +86,7 @@ function startAdapter(options) {
     Object.assign(options, {name: adapterName});
 
     adapter = new utils.Adapter(options);
-
+    adapter.strictObjectChecks = false;
     // is called when adapter shuts down - callback has to be called under any circumstances!
     adapter.on('unload', callback => {
         try {
