@@ -3,6 +3,10 @@
         "name": "upnp",
         "version": "1.0.18",
         "title": "UPnP",
+        "titleLang": {
+            "en": "UPnP",
+            "de": "UPnP"
+        },
         "news": {
             "1.0.18": {
                 "en": "added support for Admin5",
