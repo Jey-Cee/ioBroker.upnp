@@ -1,14 +1,14 @@
 {
     "common": {
         "name": "upnp",
-        "version": "1.0.18",
+        "version": "1.0.19",
         "title": "UPnP",
         "titleLang": {
             "en": "UPnP",
             "de": "UPnP"
         },
         "news": {
-            "1.0.18": {
+            "1.0.19": {
                 "en": "added support for Admin5",
                 "de": "Unterstützung für Admin5 hinzugefügt",
                 "ru": "добавлена поддержка Admin5",
