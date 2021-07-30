@@ -10,3 +10,5 @@ gulpfile.js
 !/main.js
 !/README.md
 /test/
+test/
+!/test/*
