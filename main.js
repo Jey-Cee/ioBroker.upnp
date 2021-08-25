@@ -83,10 +83,9 @@ function reschedule(changedId, deletedCron) {
 
 function startAdapter(options) {
     options = options || {};
-    Object.assign(options, {name: adapterName});
+    Object.assign(options, {name: adapterName, strictObjectChecks: false});
 
     adapter = new utils.Adapter(options);
-    adapter.strictObjectChecks = false;
     // is called when adapter shuts down - callback has to be called under any circumstances!
     adapter.on('unload', callback => {
         try {
