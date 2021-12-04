@@ -1,13 +1,25 @@
 {
     "common": {
         "name": "upnp",
-        "version": "1.0.19",
+        "version": "1.0.20",
         "title": "UPnP",
         "titleLang": {
             "en": "UPnP",
             "de": "UPnP"
         },
         "news": {
+            "1.0.20": {
+                "en": "ensure compatibility with future controller versions",
+                "de": "Gewährleistung der Kompatibilität mit zukünftigen Controller-Versionen",
+                "ru": "обеспечить совместимость с будущими версиями контроллеров",
+                "pt": "garantir a compatibilidade com futuras versões do controlador",
+                "nl": "zorgen voor compatibiliteit met toekomstige controllerversies",
+                "fr": "assurer la compatibilité avec les futures versions du contrôleur",
+                "it": "garantire la compatibilità con le future versioni del controller",
+                "es": "garantizar la compatibilidad con futuras versiones del controlador",
+                "pl": "zapewnić kompatybilność z przyszłymi wersjami sterownika",
+                "zh-cn": "确保与未来的控制器版本兼容"
+            },
             "1.0.19": {
                 "en": "added support for Admin5",
                 "de": "Unterstützung für Admin5 hinzugefügt",
@@ -115,6 +127,11 @@
             {
                 "name": "Jey Cee",
                 "email": "jey-cee@live.com"
+            }
+        ],
+        "globalDependencies": [
+            {
+                "js-controller": ">=3.3.0"
             }
         ]
     },

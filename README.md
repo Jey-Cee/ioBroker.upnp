@@ -222,6 +222,9 @@ You can enable polling in admin via objects configuration.
 -->
 
 ## Changelog
+### 1.0.20 (2021-12-04)
+* (foxriver76) ensure compatibility with future controller versions
+
 ### 1.0.19 (2021-05-28)
 * (bluefox) added support for Admin5
 
