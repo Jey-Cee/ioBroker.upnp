@@ -222,6 +222,10 @@ You can enable polling in admin via objects configuration.
 -->
 
 ## Changelog
+
+### **WORK IN PROGRESS**
+* small fixes
+
 ### 1.0.20 (2021-12-04)
 * (foxriver76) ensure compatibility with future controller versions
 __requires controller v3.3.0__
