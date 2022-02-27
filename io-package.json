@@ -110,8 +110,8 @@
         "keywords": [
             "upnp"
         ],
-        "extIcon": "https://raw.githubusercontent.com/iobroker-community-adapters/ioBroker.upnp/master/admin/upnp.png",
-        "readme": "https://github.com/iobroker-community-adapters/ioBroker.upnp/blob/master/README.md",
+        "extIcon": "https://raw.githubusercontent.com/Jey-Cee/ioBroker.upnp/master/admin/upnp.png",
+        "readme": "https://github.com/Jey-Cee/ioBroker.upnp/blob/master/README.md",
         "loglevel": "info",
         "type": "network",
         "messagebox": true,
@@ -127,6 +127,11 @@
             {
                 "name": "Jey Cee",
                 "email": "jey-cee@live.com"
+            }
+        ],
+        "dependencies": [
+            {
+                "js-controller": ">=3.3.0"
             }
         ],
         "globalDependencies": [
