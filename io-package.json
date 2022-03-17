@@ -8,6 +8,18 @@
             "de": "UPnP"
         },
         "news": {
+            "1.0.21": {
+                "en": "small fixes",
+                "de": "kleine Korrekturen",
+                "ru": "небольшие исправления",
+                "pt": "pequenas correções",
+                "nl": "kleine reparaties",
+                "fr": "petites corrections",
+                "it": "piccole correzioni",
+                "es": "pequeñas correcciones",
+                "pl": "drobne poprawki",
+                "zh-cn": "小修复"
+            },
             "1.0.20": {
                 "en": "ensure compatibility with future controller versions",
                 "de": "Gewährleistung der Kompatibilität mit zukünftigen Controller-Versionen",
