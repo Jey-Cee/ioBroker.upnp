@@ -221,8 +221,6 @@ You can enable polling in admin via objects configuration.
 	### **WORK IN PROGRESS**
 -->
 
-
-
 ## Changelog
 
 ### 1.1.0 (2024-09-30)

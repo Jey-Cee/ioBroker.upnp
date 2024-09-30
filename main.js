@@ -810,6 +810,7 @@ function createServiceList(result, xmlFN, xmlTypeOfDevice, object, strLocation, 
             .then(result => result.sids.indexOf(sid) === -1 && result.sids.push(sid));
 
         let SCPDlocation = `http://${strLocation}:${strPort}${xmlSCPDURL}`;
+
         let service = `${xmlFN}.${xmlTypeOfDevice}.${xmlService}`;
         addTask({name: 'readSCPD', SCPDlocation, service});
     }
