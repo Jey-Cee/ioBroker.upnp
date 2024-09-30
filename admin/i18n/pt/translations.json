@@ -1,6 +1,4 @@
 {
-    "autoDiscover": "Descobrir novos dispositivos automaticamente",
-    "autoSubscription": "assinatura automática",
-    "enableSimplePlayerControls": "Use objetos simples do media player",
-    "upnp-discovery adapter settings": "Configurações"
+    "enableAutoDiscover": "Descobrir novos dispositivos automaticamente",
+    "enableAutoSubscription": "assinatura automática"
 }

@@ -1,3 +1,0 @@
-// Example: Getting every 10 seconds actual IP address
-schedule('*/10 * * * * *', () =>
-    setState('upnp.0.FRITZ!Box_7272.WANDevice.WANCommonInterfaceConfig.GetAddonInfos', 'send'));

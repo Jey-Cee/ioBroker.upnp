@@ -1,6 +1,4 @@
 {
-    "autoDiscover": "Автоматическое открытие новых устройств",
-    "autoSubscription": "автоматическая подписка",
-    "enableSimplePlayerControls": "Используйте простые объекты медиаплеера",
-    "upnp-discovery adapter settings": "настройки"
+    "enableAutoDiscover": "Автоматическое открытие новых устройств",
+    "enableAutoSubscription": "автоматическая подписка"
 }

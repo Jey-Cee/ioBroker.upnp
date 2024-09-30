@@ -1,6 +1,4 @@
 {
-    "autoDiscover": "Auto-découvrir de nouveaux périphériques",
-    "autoSubscription": "abonnement automatique",
-    "enableSimplePlayerControls": "Utiliser des objets de lecteur multimédia simples",
-    "upnp-discovery adapter settings": "Paramètres"
+    "enableAutoDiscover": "Auto-découvrir de nouveaux périphériques",
+    "enableAutoSubscription": "abonnement automatique"
 }

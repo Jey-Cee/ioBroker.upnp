@@ -4,14 +4,8 @@
   "description": "UPnP is looking for UPnP devices on Local Network",
   "author": {
     "name": "Jey Cee",
-    "email": "jey-cee@live.com"
+    "email": "iobroker@all-smart.net"
   },
-  "contributors": [
-    {
-      "name": "Jey Cee",
-      "email": "jey-cee@live.com"
-    }
-  ],
   "homepage": "https://github.com/Jey-Cee/ioBroker.upnp",
   "license": "MIT",
   "keywords": [
@@ -23,6 +17,9 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Jey-Cee/ioBroker.upnp"
+  },
+  "engines": {
+    "node": ">= 18"
   },
   "dependencies": {
     "@iobroker/adapter-core": "^3.2.1",
@@ -40,16 +37,25 @@
     "axios": "^1.7.7",
     "mocha": "^10.7.3",
     "chai": "^5.1.1",
-    "@iobroker/testing": "5.0.0",
-    "@alcalzone/release-script": "3.8.0",
-    "@alcalzone/release-script-plugin-iobroker": "3.7.2",
-    "@alcalzone/release-script-plugin-license": "3.7.0"
+    "@iobroker/testing": "^5.0.0",
+    "@alcalzone/release-script": "^3.8.0",
+    "@alcalzone/release-script-plugin-iobroker": "^3.7.2",
+    "@alcalzone/release-script-plugin-license": "^3.7.0"
   },
   "bugs": {
     "url": "https://github.com/Jey-Cee/ioBroker.upnp/issues"
   },
   "readmeFilename": "README.md",
   "main": "main.js",
+  "files": [
+    "admin{,/!(src)/**}/!(tsconfig|tsconfig.*|.eslintrc).{json,json5}",
+    "admin{,/!(src)/**}/*.{html,css,png,svg,jpg,js}",
+    "lib/",
+    "www/",
+    "io-package.json",
+    "LICENSE",
+    "main.js"
+  ],
   "scripts": {
     "test": "npm run test:package && npm run test:unit",
     "test:package": "mocha test/package --exit",

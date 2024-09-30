@@ -2,10 +2,18 @@
     "common": {
         "name": "upnp",
         "version": "1.0.21",
-        "title": "UPnP",
         "titleLang": {
             "en": "UPnP",
-            "de": "UPnP"
+            "de": "UPnP",
+            "ru": "UPnP",
+            "pt": "UPnP",
+            "nl": "UPnP",
+            "fr": "UPnP",
+            "it": "UPnP",
+            "es": "UPnP",
+            "pl": "UPnP",
+            "uk": "UPnP",
+            "zh-cn": "UPnP"
         },
         "news": {
             "1.0.21": {
@@ -19,75 +27,6 @@
                 "es": "pequeñas correcciones",
                 "pl": "drobne poprawki",
                 "zh-cn": "小修复"
-            },
-            "1.0.20": {
-                "en": "ensure compatibility with future controller versions",
-                "de": "Gewährleistung der Kompatibilität mit zukünftigen Controller-Versionen",
-                "ru": "обеспечить совместимость с будущими версиями контроллеров",
-                "pt": "garantir a compatibilidade com futuras versões do controlador",
-                "nl": "zorgen voor compatibiliteit met toekomstige controllerversies",
-                "fr": "assurer la compatibilité avec les futures versions du contrôleur",
-                "it": "garantire la compatibilità con le future versioni del controller",
-                "es": "garantizar la compatibilidad con futuras versiones del controlador",
-                "pl": "zapewnić kompatybilność z przyszłymi wersjami sterownika",
-                "zh-cn": "确保与未来的控制器版本兼容"
-            },
-            "1.0.19": {
-                "en": "added support for Admin5",
-                "de": "Unterstützung für Admin5 hinzugefügt",
-                "ru": "добавлена поддержка Admin5",
-                "pt": "adicionado suporte para Admin5",
-                "nl": "ondersteuning toegevoegd voor Admin5",
-                "fr": "Ajout du support pour Admin5",
-                "it": "aggiunto il supporto per Admin5",
-                "es": "soporte agregado para Admin5",
-                "pl": "dodane wsparcie dla Admin5",
-                "zh-cn": "增加了对Admin5的支持"
-            },
-            "1.0.17": {
-                "en": "fix warning messages with js-controller 3.2.x"
-            },
-            "1.0.16": {
-                "en": "fixes for js-controller 3"
-            },
-            "1.0.15": {
-                "en": "make control of devices work again (including player controls)"
-            },
-            "1.0.14": {
-                "en": "Attempt to fix error with media-player",
-                "de": "Es wurde versucht, einen Fehler mit dem Media-Player zu beheben",
-                "ru": "Попытка исправить ошибку с медиапроигрывателем",
-                "fr": "Tentative de corriger une erreur avec le lecteur multimédia",
-                "nl": "Poging om fouten te herstellen met mediaspeler",
-                "pt": "Tente corrigir o erro com o media player",
-                "es": "Intenta arreglar un error con media-player",
-                "it": "Tentativo di correggere l'errore con il lettore multimediale",
-                "pl": "Próba naprawienia błędu w odtwarzaczu multimedialnym",
-                "zh-cn": "尝试修复媒体播放器的错误"
-            },
-            "1.0.11": {
-                "en": "Invalid characters in XML will be replaced",
-                "de": "Ungültige Zeichen in XML werden ersetzt",
-                "ru": "Неверные символы в XML будут заменены",
-                "pt": "Caracteres inválidos em XML serão substituídos",
-                "nl": "Ongeldige tekens in XML worden vervangen",
-                "fr": "Les caractères invalides dans XML seront remplacés",
-                "it": "I caratteri non validi in XML verranno sostituiti",
-                "es": "Los caracteres inválidos en XML serán reemplazados",
-                "pl": "Nieprawidłowe znaki w XML zostaną zastąpione",
-                "zh-cn": "XML中的无效字符将被替换"
-            },
-            "1.0.7": {
-                "en": "Commands will not be called parallel",
-                "de": "Befehle werden nicht parallel aufgerufen",
-                "ru": "Команды не будут называться параллельными",
-                "pt": "Comandos não serão chamados paralelos",
-                "nl": "Commando's worden niet parallel geroepen",
-                "fr": "Les commandes ne seront pas appelées parallèles",
-                "it": "I comandi non saranno chiamati paralleli",
-                "es": "Los comandos no serán llamados paralelos.",
-                "pl": "Polecenia nie będą nazywane równoległymi",
-                "zh-cn": "命令不会被并行调用"
             }
         },
         "desc": {
@@ -100,10 +39,14 @@
             "es": "Descubrir y controlar dispositivos compatibles con UPnP.",
             "it": "Scopri e controlla i dispositivi che supportano UPnP",
             "pl": "Odkrywaj i kontroluj urządzenia obsługujące UPnP",
-            "zh-cn": "发现和控制支持UPnP的设备"
+            "zh-cn": "发现和控制支持UPnP的设备",
+            "uk": "Знаходьте пристрої з підтримкою UPnP та керуйте ними"
         },
         "platform": "Javascript/Node.js",
-        "license": "MIT",
+        "licenseInformation": {
+            "type": "free",
+            "license": "MIT"
+        },
         "mode": "daemon",
         "icon": "upnp.png",
         "materialize": true,
@@ -114,29 +57,25 @@
         "readme": "https://github.com/Jey-Cee/ioBroker.upnp/blob/master/README.md",
         "loglevel": "info",
         "type": "network",
+        "tier": 3,
+        "compact": false,
         "messagebox": true,
         "supportCustoms": true,
-        "subscribe": "messagebox",
         "connectionType": "local",
         "dataSource": "push",
         "adminUI": {
             "custom": "json",
-            "config": "materialize"
+            "config": "json"
         },
         "authors": [
             {
                 "name": "Jey Cee",
-                "email": "jey-cee@live.com"
+                "email": "iobroker@all-smart.net"
             }
         ],
         "dependencies": [
             {
-                "js-controller": ">=3.3.0"
-            }
-        ],
-        "globalDependencies": [
-            {
-                "js-controller": ">=3.3.0"
+                "js-controller": ">=5.0.19"
             }
         ]
     },

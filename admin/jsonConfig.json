@@ -1,0 +1,24 @@
+{
+  "i18n": true,
+  "type": "panel",
+  "items": {
+    "enableAutoDiscover": {
+      "type": "checkbox",
+      "label": "enableAutoDiscover",
+      "xl": 12,
+      "lg": 12,
+      "md": 12,
+      "sm": 12,
+      "xs": 12
+    },
+    "enableAutoSubscription": {
+      "type": "checkbox",
+      "label": "enableAutoSubscription",
+      "xl": 12,
+      "lg": 12,
+      "md": 12,
+      "sm": 12,
+      "xs": 12
+    }
+  }
+}

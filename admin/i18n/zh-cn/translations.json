@@ -1,6 +1,4 @@
 {
-    "autoDiscover": "自动发现新设备",
-    "autoSubscription": "自动订阅",
-    "enableSimplePlayerControls": "使用简单的媒体播放器对象",
-    "upnp-discovery adapter settings": "设置"
+    "enableAutoDiscover": "自动发现新设备",
+    "enableAutoSubscription": "自动订阅"
 }
