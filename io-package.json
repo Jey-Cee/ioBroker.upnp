@@ -1,7 +1,7 @@
 {
     "common": {
         "name": "upnp",
-        "version": "1.0.21",
+        "version": "1.1.0",
         "titleLang": {
             "en": "UPnP",
             "de": "UPnP",
@@ -16,6 +16,10 @@
             "zh-cn": "UPnP"
         },
         "news": {
+            "1.1.0": {
+                "en": "Migrate config to JSONConfig \nMaintanance update",
+                "de": "Konfiguration nach JSONConfig migriert \nWartungsupdate"
+            },
             "1.0.21": {
                 "en": "small fixes",
                 "de": "kleine Korrekturen",
