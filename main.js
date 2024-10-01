@@ -1407,6 +1407,8 @@ function setNewState(state, serviceID, data, cb) {
 
             let newStates2 = JSON.stringify(newStates) || '';
 
+            console.log(newStates2);
+
             // TODO: Must be refactored
             if (newStates2 === undefined){
                 adapter.log.info('State: ' + state + ' Service ID: ' + serviceID + ' Data: ' + JSON.stringify(data));
@@ -1622,7 +1624,9 @@ function sendCommand(id, cb) {
     id = id.replace('.request', '');
 
     adapter.getObject(service, (err, obj) => {
-
+        if(obj === null) {
+            return;
+        }
         let vServiceType = obj.native.serviceType;
         let serviceName = obj.native.name;
         let device = service.replace(`.${serviceName}`, '');
@@ -1787,7 +1791,6 @@ function createMessage(sType, aName, _ip, _port, cURL, body, actionID, cb) {
                 let foundData = body.match(/<[^\/]\w*\s*[^<]*/g);
                 if (foundData) {
                     actionID = actionID.replace(/\.request$/, '');
-
                     for (let i = foundData.length - 1; i >= 0; i--) {
                         let foundArgName = foundData[i].match(/<\w*>/);
                         let strFoundArgName;
