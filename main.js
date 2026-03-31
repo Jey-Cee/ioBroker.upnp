@@ -7,9 +7,33 @@ const adapterName = require('./package.json').name.split('.').pop();
 // include node-ssdp and node-upnp-subscription
 const {Client, Server} = require('node-ssdp');
 const Subscription = require('./lib/upnp-subscription');
-const parseString = require('xml2js').parseString;
-const DOMParser = require('xmldom').DOMParser;
-const request = require('request');
+const { XMLParser } = require('fast-xml-parser');
+const xmlParser = new XMLParser({
+    ignoreAttributes: false,
+    attributeNamePrefix: '',
+    attributesGroupName: '$',
+    textNodeName: '_',
+    // Emuliere xml2js explicitArray: true -> Alle Elemente als Array (Attribute nicht)
+    isArray: (name, jpath, isLeafNode, isAttribute) => {
+        if (isAttribute) return false;
+        // root element should NOT be an array in xml2js if it's the only one?
+        // Actually, xml2js puts the root element as a property, and if explicitArray is true,
+        // its CHILDREN are arrays. The root itself is usually not an array unless there are multiple roots (which is not valid XML).
+        // But wait, the result object has the root as a property.
+        if (jpath === 'root' || jpath === 'Envelope' || jpath === 's:Envelope' || jpath === 'SOAP-ENV:Envelope' || jpath === 'scpd') return false;
+        return true;
+    },
+});
+const parseString = (xml, _options, cb) => {
+    try {
+        const text = typeof xml === 'string' ? xml : (xml && xml.toString ? xml.toString() : String(xml));
+        const result = xmlParser.parse(text || '');
+        cb && cb(null, result);
+    } catch (e) {
+        cb && cb(e);
+    }
+};
+const DOMParser = require('@xmldom/xmldom').DOMParser;
 const nodeSchedule = require('node-schedule');
 
 let adapter;
@@ -17,15 +41,18 @@ let client = new Client();
 
 const tasks = [];
 let taskRunning = false;
+const MAX_QUEUE_RETRIES = 3;
+const TASK_TIMEOUT = 30000; // 30 seconds timeout for a task
 const actions = {}; // scheduled actions
 const crons = {};
 const checked = {}; // store checked objects for polling
 let discoveredDevices = [];
+const activeSubscriptions = {}; // store active subscriptions per service ID
 let sidPromise; // Read SIDs promise
 let globalCb;  // callback for last processTasks
 
 function startCronJob(cron) {
-    console.log('Start cron JOB: ' + cron);
+    // console.log('Start cron JOB: ' + cron);
     crons[cron] = nodeSchedule.scheduleJob(cron, () => pollActions(cron));
 }
 
@@ -89,6 +116,16 @@ function startAdapter(options) {
     // is called when adapter shuts down - callback has to be called under any circumstances!
     adapter.on('unload', callback => {
         try {
+            // Unsubscribe from all active subscriptions
+            Object.keys(activeSubscriptions).forEach(key => {
+                try {
+                    activeSubscriptions[key].unsubscribe();
+                } catch (e) {
+                    // ignore
+                }
+                delete activeSubscriptions[key];
+            });
+
             server.stop(); // advertise shutting down and stop listening
             adapter.log.info('cleaned everything up...');
             clearAliveAndSIDStates(callback);
@@ -195,99 +232,100 @@ function firstDevLookup(strLocation, cb) {
     const originalStrLocation = strLocation;
     adapter.log.debug('firstDevLookup for ' + strLocation);
 
-    request(strLocation, (error, response, body) => {
-        if (!error && response.statusCode === 200) {
-            adapter.log.debug('Positive answer for request of the XML file for ' + strLocation);
+    fetch(strLocation)
+        .then(async response => {
+            if (response.ok) {
+                adapter.log.debug('Positive answer for request of the XML file for ' + strLocation);
+                const body = await response.text();
+                try {
+                    const xmlStringSerialized = new DOMParser().parseFromString((body || '').toString(), 'text/xml');
 
-            try {
-                const xmlStringSerialized = new DOMParser().parseFromString((body || '').toString(), 'text/xml');
-
-                parseString(xmlStringSerialized, {explicitArray: true, mergeAttrs: true}, (err, result) => {
-                    let path;
-                    let xmlDeviceType;
-                    let xmlTypeOfDevice;
-                    let xmlUDN;
-                    let xmlManufacturer;
-
-                    adapter.log.debug('Parsing the XML file for ' + strLocation);
-
-                    if (err) {
-                        adapter.log.warn('Error: ' + err);
-                    } else {
-                        adapter.log.debug('Creating objects for ' + strLocation);
-                        let i;
-
-                        if (!result || !result.root || !result.root.device) {
-                            adapter.log.debug('Error by parsing of ' + strLocation + ': Cannot find deviceType');
-                            return;
-                        }
-
-                        path = result.root.device[0];
-                        //Looking for deviceType of device
-                        try {
-                            xmlDeviceType = getValueFromArray(path.deviceType);
-                            xmlTypeOfDevice = xmlDeviceType.replace(/:\d/, '');
-                            xmlTypeOfDevice = xmlTypeOfDevice.replace(/.*:/, '');
-                            xmlTypeOfDevice = nameFilter(xmlTypeOfDevice);
-                            adapter.log.debug('TypeOfDevice ' + xmlTypeOfDevice);
-                        } catch (err) {
-                            adapter.log.debug(`Can not read deviceType of ${strLocation}`);
-                            xmlDeviceType = '';
-                        }
-
-                        //Looking for the port
-                        let strPort = strLocation.replace(/\bhttp:\/\/.*\d:/ig, '');
-                        strPort = strPort.replace(/\/.*/g, '');
-                        if (strPort.match(/http:/ig)) {
-                            strPort = '';
-                        } else {
-                            strPort = parseInt(strPort, 10);
-                        }
-
-                        // Looking for the IP of a device
-                        strLocation = strLocation.replace(/http:\/\/|"/g, '').replace(/:\d*\/.*/ig, '');
-
-                        //Looking for UDN of a device
-                        try {
-                            xmlUDN = getValueFromArray(path.UDN).replace(/"/g, '').replace(/uuid:/g, '');
-                        } catch (err) {
-                            adapter.log.debug(`Can not read UDN of ${strLocation}`);
-                            xmlUDN = '';
-                        }
-
-                        //Looking for the manufacturer of a device
-                        try {
-                            xmlManufacturer = getValueFromArray(path.manufacturer).replace(/"/g, '');
-                        } catch (err) {
-                            adapter.log.debug('Can not read manufacturer of ' + strLocation);
-                            xmlManufacturer = '';
-                        }
-
-                        // Extract the path to the device icon that is delivered by the device
-                        // let i_icons = 0;
-                        let xmlIconURL;
-                        let xmlFN;
+                    parseString(xmlStringSerialized, {explicitArray: true, mergeAttrs: true}, (err, result) => {
+                        let path;
+                        let xmlDeviceType;
+                        let xmlTypeOfDevice;
+                        let xmlUDN;
+                        let xmlManufacturer;
                         let xmlManufacturerURL;
                         let xmlModelNumber;
                         let xmlModelDescription;
                         let xmlModelName;
                         let xmlModelURL;
 
-                        try {
-                            // i_icons = path.iconList[0].icon.length;
-                            xmlIconURL = getValueFromArray(path.iconList[0].icon[0].url).replace(/"/g, '');
-                        } catch (err) {
-                            adapter.log.debug(`Can not find a icon for ${strLocation}`);
-                            xmlIconURL = '';
+                        // adapter.log.debug('Parsing the XML file for ' + strLocation);
+
+                        if (err) {
+                            adapter.log.warn('Error: ' + err);
+                        } else {
+                            // adapter.log.debug('Creating objects for ' + strLocation);
+                            // let i;
+
+                            if (!result || !result.root || !result.root.device) {
+                            adapter.log.debug(`Error by parsing of ${strLocation}: Cannot find deviceType in ${JSON.stringify(result)}`);
+                            return;
                         }
 
-                        //Looking for the friendlyName of a device
-                        try {
-                            xmlFN = nameFilter(getValueFromArray(path.friendlyName));
-                        } catch (err) {
-                            adapter.log.debug(`Can not read friendlyName of ${strLocation}`);
-                            xmlFN = 'Unknown';
-                        }
+                            path = result.root.device[0];
+                            //Looking for deviceType of device
+                            try {
+                                xmlDeviceType = getValueFromArray(path.deviceType);
+                                xmlTypeOfDevice = xmlDeviceType.replace(/:\d/, '');
+                                xmlTypeOfDevice = xmlTypeOfDevice.replace(/.*:/, '');
+                                xmlTypeOfDevice = nameFilter(xmlTypeOfDevice);
+                                // adapter.log.debug('TypeOfDevice ' + xmlTypeOfDevice);
+                            } catch (err) {
+                                adapter.log.debug(`Can not read deviceType of ${strLocation}`);
+                                xmlDeviceType = '';
+                            }
+
+                            //Looking for the port
+                            let strPort = strLocation.replace(/\bhttp:\/\/.*\d:/ig, '');
+                            strPort = strPort.replace(/\/.*/g, '');
+                            if (strPort.match(/http:/ig)) {
+                                strPort = '';
+                            } else {
+                                strPort = parseInt(strPort, 10);
+                            }
+
+                            // Looking for the IP of a device
+                            strLocation = strLocation.replace(/http:\/\/|"/g, '').replace(/:\d*\/.*/ig, '');
+
+                            //Looking for UDN of a device
+                            try {
+                                xmlUDN = getValueFromArray(path.UDN).replace(/"/g, '').replace(/uuid:/g, '');
+                            } catch (err) {
+                                adapter.log.debug(`Can not read UDN of ${strLocation}`);
+                                xmlUDN = '';
+                            }
+
+                            //Looking for the manufacturer of a device
+                            try {
+                                xmlManufacturer = getValueFromArray(path.manufacturer).replace(/"/g, '');
+                            } catch (err) {
+                                adapter.log.debug('Can not read manufacturer of ' + strLocation);
+                                xmlManufacturer = '';
+                            }
+
+                            // Extract the path to the device icon that is delivered by the device
+                            // let i_icons = 0;
+                            let xmlIconURL;
+                            let xmlFN;
+
+                            try {
+                                // i_icons = path.iconList[0].icon.length;
+                                xmlIconURL = getValueFromArray(path.iconList[0].icon[0].url).replace(/"/g, '');
+                            } catch (err) {
+                                adapter.log.debug(`Can not find a icon for ${strLocation}`);
+                                xmlIconURL = '';
+                            }
+
+                            //Looking for the friendlyName of a device
+                            try {
+                                xmlFN = nameFilter(getValueFromArray(path.friendlyName));
+                            } catch (err) {
+                                adapter.log.debug(`Can not read friendlyName of ${strLocation}`);
+                                xmlFN = 'Unknown';
+                            }
 
                         //Looking for the manufacturerURL
                         try {
@@ -385,6 +423,7 @@ function firstDevLookup(strLocation, cb) {
                         // START - Creating SubDevices list for a device
                         let lenSubDevices = 0;
                         let xmlfriendlyName;
+                        let i;
 
                         if (path.deviceList && path.deviceList[0].device) {
                             // Counting SubDevices
@@ -400,7 +439,7 @@ function firstDevLookup(strLocation, cb) {
                                         xmlTypeOfDevice = xmlDeviceType.replace(/:\d/, '');
                                         xmlTypeOfDevice = xmlTypeOfDevice.replace(/.*:/, '');
                                         xmlTypeOfDevice = nameFilter(xmlTypeOfDevice);
-                                        adapter.log.debug(`TypeOfDevice ${xmlTypeOfDevice}`);
+                                        // adapter.log.debug(`TypeOfDevice ${xmlTypeOfDevice}`);
                                     } catch (err) {
                                         adapter.log.debug(`Can not read deviceType of ${strLocation}`);
                                         xmlDeviceType = '';
@@ -542,7 +581,7 @@ function firstDevLookup(strLocation, cb) {
                                                         .replace(/:\d/, '')
                                                         .replace(/.*:/, '');
                                                     xmlTypeOfDevice = nameFilter(xmlTypeOfDevice);
-                                                    adapter.log.debug(`TypeOfDevice ${xmlTypeOfDevice}`);
+                                                    // adapter.log.debug(`TypeOfDevice ${xmlTypeOfDevice}`);
                                                 } catch (err) {
                                                     adapter.log.debug(`Can not read deviceType of ${strLocation}`);
                                                     xmlDeviceType = '';
@@ -691,6 +730,13 @@ function firstDevLookup(strLocation, cb) {
             cb && cb();
         }
 
+    })
+    .catch(error => {
+        adapter.log.debug(`Cannot fetch ${strLocation}: ${error}`);
+        // remove device from processed list
+        const pos = discoveredDevices.indexOf(originalStrLocation);
+        pos !== -1 && discoveredDevices.splice(pos, 1);
+        cb && cb();
     });
 }
 
@@ -818,36 +864,41 @@ function createServiceList(result, xmlFN, xmlTypeOfDevice, object, strLocation, 
 
 // Read the SCPD File  of a upnp device service
 function readSCPD(SCPDlocation, service, cb) {
+            // adapter.log.debug('readSCPD for ' + SCPDlocation);
 
-    adapter.log.debug('readSCPD for ' + SCPDlocation);
-
-    request(SCPDlocation, (error, response, body) => {
-        if (!error && response.statusCode === 200) {
-
-            try {
-                parseString(body, {explicitArray: true}, (err, result) => {
-                    adapter.log.debug('Parsing the SCPD XML file for ' + SCPDlocation);
-                    if (err) {
-                        adapter.log.warn('Error: ' + err);
-                        cb();
-                    } else if (!result || !result.scpd) {
-                        adapter.log.debug('Error by parsing of ' + SCPDlocation);
-                        cb();
-                    } else {
-                        createServiceStateTable(result, service);
-                        createActionList(result, service);
-                        processTasks();
-                        cb();
-                    }
-                }); //END function
-            } catch (error) {
-                adapter.log.debug(`Cannot parse answer from ${SCPDlocation}: ${error}`);
-                cb();
+    fetch(SCPDlocation)
+        .then(async response => {
+            if (response.ok) {
+                const body = await response.text();
+                try {
+                    parseString(body, { explicitArray: true }, (err, result) => {
+                        // adapter.log.debug('Parsing the SCPD XML file for ' + SCPDlocation);
+                        if (err) {
+                            adapter.log.warn('Error: ' + err);
+                            cb && cb();
+                        } else if (!result || !result.scpd) {
+                            adapter.log.debug('Error by parsing of ' + SCPDlocation);
+                            cb && cb();
+                        } else {
+                            createServiceStateTable(result, service);
+                            createActionList(result, service);
+                            processTasks();
+                            cb && cb();
+                        }
+                    }); //END function
+                } catch (error) {
+                    adapter.log.debug(`Cannot parse answer from ${SCPDlocation}: ${error}`);
+                    cb && cb();
+                }
+            } else {
+                adapter.log.warn(`Response not ok for ${SCPDlocation}: ${response.status}`);
+                cb && cb();
             }
-        } else {
-            cb();
-        }
-    });
+        })
+        .catch(error => {
+            adapter.log.warn(`Error reading SCPD file: ${error}`);
+            cb && cb();
+        });
 }
 
 function createServiceStateTable(result, service) {
@@ -1068,6 +1119,10 @@ function createArgumentList(result, service, actionName, action_number, path) {
 //END Creating argumentList
 
 let showTimer = null;
+/**
+ * Processes the task queue.
+ * @param {() => void} [cb] Optional callback called when all current tasks are finished.
+ */
 function processTasks(cb) {
     if (!taskRunning && tasks.length) {
         if (cb) {
@@ -1076,8 +1131,15 @@ function processTasks(cb) {
 
         taskRunning = true;
         setImmediate(_processTasks);
-        adapter.log.debug('Started processTasks with ' + tasks.length + ' tasks');
-        showTimer = setInterval(() => adapter.log.debug(`Tasks ${tasks.length}...`), 5000);
+        // adapter.log.debug(`Started processTasks with ${tasks.length} tasks`);
+        if (showTimer) {
+            clearInterval(showTimer);
+        }
+        showTimer = setInterval(() => {
+            if (tasks.length > 50) {
+                adapter.log.debug(`Tasks remaining in queue: ${tasks.length}`);
+            }
+        }, 30000);
     } else if (cb) {
         cb();
     }
@@ -1087,47 +1149,80 @@ function addTask(task) {
     tasks.push(task);
 }
 
-function _processTasks() {
+async function _processTasks() {
     if (!tasks.length) {
         taskRunning = false;
-        adapter.log.debug('All tasks processed');
-        clearInterval(showTimer);
+        // adapter.log.debug('All tasks processed');
+        if (showTimer) {
+            clearInterval(showTimer);
+            showTimer = null;
+        }
         if (globalCb) {
-            globalCb();
+            const cb = globalCb;
             globalCb = null;
+            cb();
         }
     } else {
         const task = tasks.shift();
-        if (task.name === 'sendCommand') {
-            sendCommand(task.id, () => setTimeout(_processTasks, 0));
-        } else
-        if (task.name === 'firstDevLookup') {
-            firstDevLookup(task.location, () => setTimeout(_processTasks, 0));
-        } else
-        if (task.name === 'subscribeEvent') {
-            subscribeEvent(task.deviceID, () => setTimeout(_processTasks, 0));
-        } else if (task.name === 'setState') {
-            adapter.setState(task.id, task.state, err => {
-                if (typeof task.cb === 'function') {
-                    task.cb(() => setTimeout(_processTasks, 0));
-                } else {
-                    setTimeout(_processTasks, 0);
-                }
-            });
-        } else
-        if (task.name === 'valChannel') {
-            valChannel(task.strState, task.serviceID, () => {
-                writeState(task.serviceID, task.stateName, task.val, () =>
-                    setTimeout(_processTasks, 0));
-            });
+        // adapter.log.debug(`Processing task: ${task.name} (${tasks.length} remaining)`);
 
-        } else
-        if (task.name === 'readSCPD') {
-            readSCPD(task.SCPDlocation, task.service, () => setTimeout(_processTasks, 0));
-        } else
-        if (task.name === 'setObjectNotExists') {
-            if(task.obj.common.type){
-                switch (task.obj.common.type){
+        const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error(`Task ${task.name} timed out after ${TASK_TIMEOUT}ms`)), TASK_TIMEOUT)
+        );
+
+        try {
+            await Promise.race([
+                executeTask(task),
+                timeoutPromise
+            ]);
+        } catch (err) {
+            adapter.log.error(`Error processing task ${task.name}: ${err.message}`);
+            if (task.retries === undefined) {
+                task.retries = 0;
+            }
+            if (task.retries < MAX_QUEUE_RETRIES && task.name !== 'setState') {
+                task.retries++;
+                adapter.log.debug(`Retrying task ${task.name} (attempt ${task.retries})`);
+                tasks.push(task);
+            }
+        }
+
+        setImmediate(_processTasks);
+    }
+}
+
+async function executeTask(task) {
+    switch (task.name) {
+        case 'sendCommand':
+            return new Promise(resolve => sendCommand(task.id, resolve));
+        case 'firstDevLookup':
+            return new Promise(resolve => firstDevLookup(task.location, resolve));
+        case 'subscribeEvent':
+            return new Promise(resolve => subscribeEvent(task.deviceID, resolve));
+        case 'setState':
+            return new Promise(resolve => {
+                adapter.setState(task.id, task.state, err => {
+                    if (err) {
+                        adapter.log.error(`Error in setState for ${task.id}: ${err}`);
+                    }
+                    if (typeof task.cb === 'function') {
+                        task.cb(resolve);
+                    } else {
+                        resolve();
+                    }
+                });
+            });
+        case 'valChannel':
+            return new Promise(resolve => {
+                valChannel(task.strState, task.serviceID, () => {
+                    writeState(task.serviceID, task.stateName, task.val, resolve);
+                });
+            });
+        case 'readSCPD':
+            return new Promise(resolve => readSCPD(task.SCPDlocation, task.service, resolve));
+        case 'setObjectNotExists':
+            if (task.obj && task.obj.common && task.obj.common.type) {
+                switch (task.obj.common.type) {
                     case 'bool':
                         task.obj.common.type = 'boolean';
                         break;
@@ -1158,28 +1253,28 @@ function _processTasks() {
                         task.obj.common.type = 'string';
                         break;
                 }
-                if(task.obj.common.name === 'bool'){
+                if (task.obj.common.name === 'bool') {
                     task.obj.common.name = 'boolean';
                 }
             }
-            adapter.setObjectNotExists(task.id, task.obj, () => {
-                if (task.obj.type === 'state' && task.id.match(/\.sid$/)) {
-                    adapter.getState(task.id, (err, state) => {
-                        if (!state) {
-                            adapter.setState(task.id, false, true, (err, state) =>
-                                setTimeout(_processTasks, 0));
-                        } else {
-                            setTimeout(_processTasks, 0);
-                        }
-                    });
-                } else {
-                    setTimeout(_processTasks, 0);
-                }
+            return new Promise(resolve => {
+                adapter.setObjectNotExists(task.id, task.obj, () => {
+                    if (task.obj && task.obj.type === 'state' && task.id.match(/\.sid$/)) {
+                        adapter.getState(task.id, (err, state) => {
+                            if (!state) {
+                                adapter.setState(task.id, false, true, resolve);
+                            } else {
+                                resolve();
+                            }
+                        });
+                    } else {
+                        resolve();
+                    }
+                });
             });
-        } else {
-            adapter.log.warn('Unknown task: ' + task.name);
-            setTimeout(_processTasks, 0);
-        }
+        default:
+            adapter.log.warn(`Unknown task: ${task.name}`);
+            return Promise.resolve();
     }
 }
 
@@ -1289,33 +1384,50 @@ async function subscribeEvent(id, cb) {
     const service = id.replace(/\.Alive/ig, '');
     if (adapter.config.enableAutoSubscription === true) {
         adapter.getObject(service, (err, obj) => {
-            let deviceIP = obj.native.ip;
-            let devicePort = obj.native.port;
+            if (err || !obj || !obj.native) {
+                adapter.log.error(`Could not get service object for ${service}: ${err}`);
+                cb && cb();
+                return;
+            }
+            const deviceIP = obj.native.ip;
+            const devicePort = obj.native.port;
             const parts = obj._id.split('.');
             parts.pop();
             const channelID = parts.join('.');
 
             adapter.getChannelsOf(channelID, async (err, channels) => {
+                if (err || !channels) {
+                    adapter.log.error(`Could not get channels for ${channelID}: ${err}`);
+                    cb && cb();
+                    return;
+                }
                 for (let x = channels.length - 1; x >= 0; x--) {
                     const eventUrl = getValueFromArray(channels[x].native.eventSubURL).replace(/"/g, '');
-                    if(channels[x].native.serviceType) {
+                    if (channels[x].native.serviceType) {
+                        const subKey = `${deviceIP}:${devicePort}${eventUrl}`;
+                        if (activeSubscriptions[subKey]) {
+                            adapter.log.debug(`Subscription for ${subKey} already active, skipping.`);
+                            continue;
+                        }
                         try {
                             const infoSub = new Subscription(deviceIP, devicePort, eventUrl, 1000);
-                            listener(eventUrl, channels[x]._id, infoSub);
+                            activeSubscriptions[subKey] = infoSub;
+                            listener(eventUrl, channels[x]._id, infoSub, subKey);
                         } catch (err) {
+                            adapter.log.error(`Error creating subscription for ${subKey}: ${err.message}`);
                         }
                     }
                 }
-                cb();
+                cb && cb();
             }); //END adapter.getChannelsOf()
         }); //END adapter.getObjects()
     } else {
-        cb();
+        cb && cb();
     }
 }
 
 // message handler for subscriptions
-function listener(eventUrl, channelID, infoSub) {
+function listener(eventUrl, channelID, infoSub, subKey) {
     let variableTimeout;
     let resetTimeoutTimer;
 
@@ -1331,7 +1443,7 @@ function listener(eventUrl, channelID, infoSub) {
     });
 
     infoSub.on('message', data => {
-        adapter.log.debug('Listener message: ' + JSON.stringify(data));
+        // adapter.log.debug('Listener message: ' + JSON.stringify(data));
         variableTimeout += 5;
 
         setTimeout(() =>
@@ -1347,8 +1459,16 @@ function listener(eventUrl, channelID, infoSub) {
     });
 
     infoSub.on('error', err => {
-        adapter.log.debug(`Subscription error: ` + JSON.stringify(err));
-        // subscription.unsubscribe();
+        adapter.log.debug(`Subscription error for ${subKey}: ` + JSON.stringify(err));
+        if (activeSubscriptions[subKey]) {
+            delete activeSubscriptions[subKey];
+        }
+    });
+
+    infoSub.on('unsubscribed', () => {
+        if (activeSubscriptions[subKey]) {
+            delete activeSubscriptions[subKey];
+        }
     });
 
     infoSub.on('resubscribed', data => {
@@ -1373,18 +1493,20 @@ function lookupService(data, SIDs, cb) {
 
         adapter.getState(id, (err, state) => {
             if (err || !state || typeof state !== 'object') {
-                adapter.log.error(`Error in lookupService: ${err || 'No object ' + id}`);
-                setImmediate(lookupService, data, cb);
+                if (err) {
+                    adapter.log.error(`Error in lookupService: ${err}`);
+                }
+                setImmediate(lookupService, data, SIDs, cb);
             } else {
                 setNewState(state, id.replace(/\.sid$/, ''), data, () =>
-                    setImmediate(lookupService, data, cb));
+                    setImmediate(lookupService, data, SIDs, cb));
             }
         });
     }
 }
 
 function setNewState(state, serviceID, data, cb) {
-    adapter.log.debug('setNewState: ' + state + ' ' + JSON.stringify(data));
+    // adapter.log.debug('setNewState: ' + state + ' ' + JSON.stringify(data));
     // Extract the value of the state
     let valueSID = state.val;
 
@@ -1397,17 +1519,11 @@ function setNewState(state, serviceID, data, cb) {
 
             if (newStates && newStates.LastChange && newStates.LastChange._) {
                 newStates = newStates.LastChange._;
-                adapter.log.info('Number 1: ' + newStates);
             } else if (newStates) {
                 newStates = newStates.LastChange;
-                adapter.log.info('Number 2: ' + newStates);
-            } else {
-                adapter.log.info('Number 3: ' + newStates);
             }
 
-            let newStates2 = JSON.stringify(newStates) || '';
-
-            console.log(newStates2);
+            const newStates2 = JSON.stringify(newStates) || '';
 
             // TODO: Must be refactored
             if (newStates2 === undefined){
@@ -1486,27 +1602,27 @@ function setNewState(state, serviceID, data, cb) {
 function writeState(sID, sname, val, cb) {
     adapter.getObject(`${sID}.A_ARG_TYPE_${sname}`, (err, obj) => {
         if (obj) {
-            if(obj.common.type === 'number'){
-                val = parseInt(val);
+            if (obj.common && obj.common.type === 'number') {
+                val = parseInt(val, 10);
             }
-            adapter.setState(`${sID}.A_ARG_TYPE_${sname}`, {val: val, ack: true}, err => {
+            adapter.setState(`${sID}.A_ARG_TYPE_${sname}`, { val: val, ack: true }, err => {
                 adapter.getObject(`${sID}.${sname}`, (err, obj) => {
                     if (obj) {
-                        adapter.setState(`${sID}.${sname}`, {val: val, ack: true}, cb);
+                        adapter.setState(`${sID}.${sname}`, { val: val, ack: true }, cb);
                     } else {
-                        cb();
+                        cb && cb();
                     }
                 });
             });
         } else {
             adapter.getObject(`${sID}.${sname}`, (err, obj) => {
                 if (obj) {
-                    if(obj.common.type === 'number'){
-                        val = parseInt(val);
+                    if (obj.common && obj.common.type === 'number') {
+                        val = parseInt(val, 10);
                     }
-                    adapter.setState(`${sID}.${sname}`, {val: val, ack: true}, cb);
+                    adapter.setState(`${sID}.${sname}`, { val: val, ack: true }, cb);
                 } else {
-                    cb();
+                    cb && cb();
                 }
             });
         }
@@ -1520,9 +1636,9 @@ function valChannel(strState, serviceID, cb) {
     if (channel) {
         channel = channel.toString();
         channel = channel.replace(/channel":"/ig, '');
-        adapter.setState(`${serviceID}.A_ARG_TYPE_Channel`, {val: channel, ack: true}, cb);
+        adapter.setState(`${serviceID}.A_ARG_TYPE_Channel`, { val: channel, ack: true }, cb);
     } else {
-        cb()
+        cb && cb();
     }
 }
 
@@ -1616,94 +1732,92 @@ function getIDs() {
 
 // control the devices
 function sendCommand(id, cb) {
-    adapter.log.debug('Send Command for ' + id);
-    let parts = id.split('.');
+    // adapter.log.debug('Send Command for ' + id);
+    const parts = id.split('.');
     parts.pop();
-    let actionName = parts.pop();
-    let service = parts.join('.');
+    const actionName = parts.pop();
+    const service = parts.join('.');
     id = id.replace('.request', '');
 
     adapter.getObject(service, (err, obj) => {
-        if(obj === null) {
+        if (err || obj === null || !obj.native) {
+            adapter.log.warn(`Service object not found or invalid for ${service}: ${err}`);
+            cb && cb();
             return;
         }
-        let vServiceType = obj.native.serviceType;
-        let serviceName = obj.native.name;
-        let device = service.replace(`.${serviceName}`, '');
-        let vControlURL = obj.native.controlURL;
+        const vServiceType = obj.native.serviceType;
+        const serviceName = obj.native.name;
+        const device = service.replace(`.${serviceName}`, '');
+        const vControlURL = obj.native.controlURL;
 
         adapter.getObject(device, (err, obj) => {
-            let ip = obj.native.ip;
-            let port = obj.native.port;
+            if (err || obj === null || !obj.native) {
+                adapter.log.warn(`Device object not found or invalid for ${device}: ${err}`);
+                cb && cb();
+                return;
+            }
+            const ip = obj.native.ip;
+            const port = obj.native.port;
             let cName = JSON.stringify(obj._id);
             cName = cName.replace(/\.\w*"$/g, '');
             cName = cName.replace(/^"/g, '');
 
             adapter.getStatesOf(cName, (err, _states) => {
-                let args = [];
+                if (err || !_states) {
+                    adapter.log.warn(`Could not get states for ${cName}: ${err}`);
+                    cb && cb();
+                    return;
+                }
+                const args = [];
 
                 for (let x = _states.length - 1; x >= 0; x--) {
-                    let argumentsOfAction = _states[x]._id;
-                    let obj = _states[x];
+                    const argumentsOfAction = _states[x]._id;
+                    const obj = _states[x];
                     let test2 = id + '\\.';
                     try {
                         test2 = test2.replace(/\(/gi, '.');
-                    } catch (err) {
-                        adapter.log.debug(err)
-                    }
-                    try {
                         test2 = test2.replace(/\)/gi, '.');
-                    } catch (err) {
-                        adapter.log.debug(err)
-                    }
-                    try {
                         test2 = test2.replace(/\[/gi, '.');
-                    } catch (err) {
-                        adapter.log.debug(err)
-                    }
-                    try {
                         test2 = test2.replace(/ ]/gi, '.');
                     } catch (err) {
-                        adapter.log.debug(err)
+                        adapter.log.debug(err);
                     }
-                    let re = new RegExp(test2, 'g');
-                    let testResult = re.test(argumentsOfAction);
+                    const re = new RegExp(test2, 'g');
+                    const testResult = re.test(argumentsOfAction);
                     if (testResult && argumentsOfAction !== id) {
                         args.push(obj);
                     }
                 }
 
-                let body = '';
-
                 // get all states of the arguments as string
                 adapter.getStates(`${id}.*`, (err, idStates) => {
-                    adapter.log.debug('get all states of the arguments as string ');
+                    if (err || !idStates) {
+                        adapter.log.debug('No states found for arguments of ' + id);
+                        idStates = {};
+                    }
+                    // adapter.log.debug('get all states of the arguments as string ');
                     let helperBody = [];
                     let states = JSON.stringify(idStates);
                     states = states.replace(/,"ack":\w*,"ts":\d*,"q":\d*,"from":"(\w*\.)*(\d*)","lc":\d*/g, '');
 
                     for (let z = args.length - 1; z >= 0; z--) {
                         // check if the argument has to be send with the action
-                        if (args[z].native.direction === 'in') {
-                            let argNo = args[z].native.argumentNumber;
+                        if (args[z].native && args[z].native.direction === 'in') {
+                            const argNo = args[z].native.argumentNumber;
 
                             // check if the argument is already written to the helperBody array, if not found value and add to array
                             if (helperBody[argNo] == null) {
-
-                                let test2 = getValueFromArray(args[z]._id);
-                                // replace signs that could cause problems with regex
-                                test2 = test2
+                                const test2 = getValueFromArray(args[z]._id)
                                     .replace(/\(/gi, '.')
                                     .replace(/\)/gi, '.')
                                     .replace(/\[/gi, '.')
                                     .replace(/]/gi, '.');
 
-                                let test3 = test2 + '":{"val":("[^"]*|\\d*)}?';
-                                let patt = new RegExp(test3, 'g');
+                                const test3 = test2 + '":{"val":("[^"]*|\\d*)}?';
+                                const patt = new RegExp(test3, 'g');
 
                                 let testResult2;
-
-                                let testResult = states.match(patt);
+                                const testResult = states.match(patt);
                                 testResult2 = JSON.stringify(testResult);
                                 testResult2 = testResult2.match(/val\\":(\\"[^"]*|\d*)}?/g);
                                 testResult2 = JSON.stringify(testResult2);
@@ -1712,24 +1826,22 @@ function sendCommand(id, cb) {
                                 testResult2 = testResult2.replace(/}"/, '');
                                 testResult2 = testResult2.replace(/"/g, '');
 
-
                                 //extract argument name from id string
-                                let test1 = args[z]._id;
-                                let argName = test1.replace(`${id}\.`, '');
+                                const test1 = args[z]._id;
+                                const argName = test1.replace(`${id}.`, '');
 
-                                helperBody[argNo] = '<' + argName + '>' + testResult2 + '</' + argName + '>';
+                                helperBody[argNo] = `<${argName}>${testResult2}</${argName}>`;
                             }
                         }
                     }
 
                     //convert helperBody array to string and add it to main body string
-                    helperBody = helperBody.toString().replace(/,/g, '');
-                    body += helperBody;
-                    body = `<u:${actionName} xmlns:u="${vServiceType}">${body}</u:${actionName}>`;
+                    helperBody = helperBody.join('').replace(/,/g, '');
+                    const body = `<u:${actionName} xmlns:u="${vServiceType}">${helperBody}</u:${actionName}>`;
 
                     createMessage(vServiceType, actionName, ip, port, vControlURL, body, id, cb);
                 });
-            })
+            });
         });
     });
 }
@@ -1756,95 +1868,113 @@ function readSchedules() {
 // create Action message
 function createMessage(sType, aName, _ip, _port, cURL, body, actionID, cb) {
     const UA = 'UPnP/1.0, ioBroker.upnp';
-    let url = `http://${_ip}:${_port}${cURL}`;
+    const url = `http://${_ip}:${_port}${cURL}`;
 
     const contentType = 'text/xml; charset="utf-8"';
-    let soapAction = `${sType}#${aName}`;
-    let postData = ` 
+    const soapAction = `${sType}#${aName}`;
+    const postData = ` 
         <s:Envelope s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\" xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\">
             <s:Body>${body}</s:Body>
         </s:Envelope>`;
 
     //Options for the SOAP message
-    let options = {
-        uri: url,
+    const options = {
+        method: 'POST',
         headers: {
             'Content-Type': contentType,
             'SOAPAction': `"${soapAction}"`,
             'USER-AGENT': UA
         },
-        method: 'POST',
         body: postData
     };
 
     // Send Action message to Device/Service
-    request(options, (err, res, body) => {
-        adapter.log.debug('Options for request: ' + JSON.stringify(options));
-        if (err) {
-            adapter.log.warn(`Error sending SOAP request: ${err}`);
-        } else {
-            if (res.statusCode !== 200) {
-                adapter.log.warn(`Unexpected answer from upnp service: ` + JSON.stringify(res) + `\n Sent message: ` + JSON.stringify(options));
+    fetch(url, options)
+        .then(async res => {
+            // adapter.log.debug('Options for request: ' + JSON.stringify(options));
+            if (!res.ok) {
+                adapter.log.warn(`Unexpected answer from upnp service: ${res.status}\n Sent message: ${JSON.stringify(options)}`);
+                cb && cb();
             } else {
-                //look for data in the response
-                // die Zusätlichen infos beim Argument namen müssen entfernt werden damit er genutzt werden kann
-                let foundData = body.match(/<[^\/]\w*\s*[^<]*/g);
-                if (foundData) {
-                    actionID = actionID.replace(/\.request$/, '');
-                    for (let i = foundData.length - 1; i >= 0; i--) {
-                        let foundArgName = foundData[i].match(/<\w*>/);
-                        let strFoundArgName;
-                        let argValue;
-                        if (foundArgName) {
-                            strFoundArgName = foundArgName[0];
-                            // TODO: must be rewritten
-                            strFoundArgName = strFoundArgName.replace(/["\][]}/g, '');
-                            argValue = foundData[i].replace(strFoundArgName, '');
-                            strFoundArgName = strFoundArgName.replace(/[<>]/g, '');
-                        } else {
-                            foundArgName = foundData[i].match(/<\w*\s/);
-                            if (foundArgName) {
-                                // TODO: must be rewritten
-                                strFoundArgName = foundArgName[0];
-                                strFoundArgName = strFoundArgName.replace(/["[\]<]/g, '').replace(/\s+$/, '');
-                                argValue = foundData[i].replace(/<.*>/, '');
-                            }
-                        }
-
-                        if (strFoundArgName !== null && strFoundArgName !== undefined) {
-                            let argID = actionID + '.' + strFoundArgName;
-                            addTask({
-                                name: 'setState',
-                                id: argID,
-                                state: {val: argValue, ack: true},
-                                cb: cb =>
-                                    //look for relatedStateVariable and setState
-                                    syncArgument(actionID, argID, argValue, cb)
-                            });
-                        }
+                const body = await res.text();
+                // Parse response using fast-xml-parser
+                parseString(body, null, (err, result) => {
+                    if (err) {
+                        adapter.log.error(`Error parsing SOAP response: ${err}`);
+                        cb && cb();
+                        return;
                     }
-                    processTasks();
-                } else {
-                    adapter.log.debug('Nothing found: ' + JSON.stringify(body));
-                }
+
+                    try {
+                        const envelope = result['s:Envelope'] || result['SOAP-ENV:Envelope'] || result['Envelope'] || result['Body'] ? result : null;
+                        const body = result['Body'] ? result['Body'] : (envelope ? (envelope['s:Body'] || envelope['SOAP-ENV:Body'] || envelope['Body']) : null);
+                        const response = body ? (Array.isArray(body) ? body[0] : body) : null;
+
+                        if (response) {
+                            const actionResponseName = Object.keys(response).find(key => key.includes(aName + 'Response'));
+                            const actionResponse = actionResponseName ? response[actionResponseName][0] : null;
+
+                            if (actionResponse) {
+                                actionID = actionID.replace(/\.request$/, '');
+                                Object.keys(actionResponse).forEach(argName => {
+                                    if (argName === '$') {
+                                        return;
+                                    }
+                                    const argValue = getValueFromArray(actionResponse[argName]);
+                                    const argID = actionID + '.' + argName;
+
+                                    addTask({
+                                        name: 'setState',
+                                        id: argID,
+                                        state: { val: argValue, ack: true },
+                                        cb: done => syncArgument(actionID, argID, argValue, done)
+                                    });
+                                });
+                                processTasks();
+                            } else {
+                                adapter.log.debug(`No action response found in SOAP body: ${JSON.stringify(body)}`);
+                            }
+                        } else {
+                            adapter.log.debug(`No SOAP body found in response: ${JSON.stringify(result)}`);
+                        }
+                    } catch (e) {
+                        adapter.log.error(`Error processing SOAP response data: ${e.message}`);
+                    }
+                    cb && cb();
+                });
             }
-        }
-        cb && cb();
-    });
+        })
+        .catch(err => {
+            adapter.log.warn(`Error sending SOAP request: ${err}`);
+            cb && cb();
+        });
 }
 
 // Sync Argument with relatedStateVariable
 function syncArgument(actionID, argID, argValue, cb) {
     adapter.getObject(argID, (err, obj) => {
-        if (obj) {
-            let relatedStateVariable = obj.native.relatedStateVariable;
-            let serviceID = actionID.replace(/\.\w*$/, '');
-            let relStateVarID = serviceID + '.' + relatedStateVariable;
+        if (err) {
+            adapter.log.error(`Error in syncArgument: Could not get object ${argID}: ${err}`);
+            cb && cb();
+            return;
+        }
+        if (obj && obj.native) {
+            const relatedStateVariable = obj.native.relatedStateVariable;
+            const serviceID = actionID.replace(/\.\w*$/, '');
+            const relStateVarID = serviceID + '.' + relatedStateVariable;
             let val = argValue;
-            if(obj.common.type === 'number'){
-                val = parseInt(argValue);
+            if (obj.common && obj.common.type === 'number') {
+                val = parseInt(argValue, 10);
+                if (isNaN(val)) {
+                    val = argValue;
+                }
             }
-            adapter.setState(relStateVarID, {val: argValue, ack: true}, cb);
+            adapter.setState(relStateVarID, { val: val, ack: true }, (err) => {
+                if (err) {
+                    adapter.log.error(`Error in syncArgument: Could not set state ${relStateVarID}: ${err}`);
+                }
+                cb && cb();
+            });
         } else {
             cb && cb();
         }
