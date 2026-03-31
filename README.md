@@ -222,8 +222,7 @@ You can enable polling in admin via objects configuration.
 -->
 
 ## Changelog
-
-### **WORK IN PROGRESS**
+### 1.1.1 (2026-03-31)
 * (iobroker-bot) Adapter requires node.js >= 20 now.
 * (Jey Cee) Update dependencies
 * (Jey Cee) GH actions

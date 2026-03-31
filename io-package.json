@@ -1,96 +1,109 @@
 {
-    "common": {
-        "name": "upnp",
-        "version": "1.1.0",
-        "titleLang": {
-            "en": "UPnP",
-            "de": "UPnP",
-            "ru": "UPnP",
-            "pt": "UPnP",
-            "nl": "UPnP",
-            "fr": "UPnP",
-            "it": "UPnP",
-            "es": "UPnP",
-            "pl": "UPnP",
-            "uk": "UPnP",
-            "zh-cn": "UPnP"
-        },
-        "news": {
-            "1.1.0": {
-                "en": "Migrate config to JSONConfig \nMaintanance update",
-                "de": "Konfiguration nach JSONConfig migriert \nWartungsupdate"
-            },
-            "1.0.21": {
-                "en": "small fixes",
-                "de": "kleine Korrekturen",
-                "ru": "небольшие исправления",
-                "pt": "pequenas correções",
-                "nl": "kleine reparaties",
-                "fr": "petites corrections",
-                "it": "piccole correzioni",
-                "es": "pequeñas correcciones",
-                "pl": "drobne poprawki",
-                "zh-cn": "小修复"
-            }
-        },
-        "desc": {
-            "en": "Discover and control devices that support UPnP",
-            "ru": "Обнаружение и управление устройствами, поддерживающих UPnP",
-            "de": "Ermitteln und steuern die Geräte, die UPnP unterstützen",
-            "pt": "Descubra e controle dispositivos que suportam UPnP",
-            "fr": "Découverte et contrôle des périphériques prenant en charge UPnP",
-            "nl": "Apparaten ontdekken en bedienen die UPnP ondersteunen",
-            "es": "Descubrir y controlar dispositivos compatibles con UPnP.",
-            "it": "Scopri e controlla i dispositivi che supportano UPnP",
-            "pl": "Odkrywaj i kontroluj urządzenia obsługujące UPnP",
-            "zh-cn": "发现和控制支持UPnP的设备",
-            "uk": "Знаходьте пристрої з підтримкою UPnP та керуйте ними"
-        },
-        "platform": "Javascript/Node.js",
-        "licenseInformation": {
-            "type": "free",
-            "license": "MIT"
-        },
-        "mode": "daemon",
-        "icon": "upnp.png",
-        "keywords": [
-            "upnp"
-        ],
-        "extIcon": "https://raw.githubusercontent.com/Jey-Cee/ioBroker.upnp/master/admin/upnp.png",
-        "readme": "https://github.com/Jey-Cee/ioBroker.upnp/blob/master/README.md",
-        "loglevel": "info",
-        "type": "network",
-        "tier": 3,
-        "compact": false,
-        "messagebox": true,
-        "supportCustoms": true,
-        "connectionType": "local",
-        "dataSource": "push",
-        "adminUI": {
-            "custom": "json",
-            "config": "json"
-        },
-        "authors": [
-            {
-                "name": "Jey Cee",
-                "email": "iobroker@all-smart.net"
-            }
-        ],
-        "dependencies": [
-            {
-                "js-controller": ">=6.0.11"
-            }
-        ],
-        "globalDependencies": [
-            {
-                "admin": "7.6.20"
-            }
-        ]
+  "common": {
+    "name": "upnp",
+    "version": "1.1.1",
+    "titleLang": {
+      "en": "UPnP",
+      "de": "UPnP",
+      "ru": "UPnP",
+      "pt": "UPnP",
+      "nl": "UPnP",
+      "fr": "UPnP",
+      "it": "UPnP",
+      "es": "UPnP",
+      "pl": "UPnP",
+      "uk": "UPnP",
+      "zh-cn": "UPnP"
     },
-    "native": {
-        "enableAutoDiscover": "",
-        "enableAutoSubscription": ""
+    "news": {
+      "1.1.1": {
+        "en": "Adapter requires node.js >= 20 now.\nUpdate dependencies\nGH actions\nreplace packet xml2js, request and ip",
+        "de": "Adapter benötigt jetzt node.js >= 20.\nAbhängigkeiten aktualisiert\nGH-Actions aktualisiert\nPakete ersetzt xml2js, request und ip",
+        "ru": "Адаптер требует node.js >= 20 сейчас.\nОбновление зависимостей\nДействия GH\nзаменить пакет xml2js, запрос и ip",
+        "pt": "O adaptador requer gnod.js >= 20 agora.\nAtualizar dependências\nAcções de GH\nsubstituir o pacote xml2js, request e ip",
+        "nl": "Voor de adapter zijn node.js > 20 nu nodig.\nAfhankelijkheden bijwerken\nGH-acties\npakket xml2js, verzoek en ip vervangen",
+        "fr": "Adapter nécessite node.js >= 20 maintenant.\nMise à jour des dépendances\nActions de GH\nremplacer paquet xml2js, requête et ip",
+        "it": "Adattatore richiede node.js >= 20 ora.\nDipendenze di aggiornamento\nGH azioni\nsostituire pacchetto xml2js, richiesta e ip",
+        "es": "Adaptador requiere node.js >= 20 ahora.\nActualizar las dependencias\nGH actions\nreemplazar el paquete xml2js, petición y ip",
+        "pl": "Adapter wymaga node.js > = 20 teraz.\nAktualizuj zależności\nDziałania GH\nzastąpić pakiet xml2js, żądanie i ip",
+        "uk": "Адаптер вимагає node.js >= 20 тепер.\nОновлення залежності\nДії ГХ\nзамінний пакет xml2js, запит та ip",
+        "zh-cn": "适配器需要节点.js >= 20 现在.\n更新依赖关系\nGH 动作\n替换数据包 xml2js, 请求和 ip"
+      },
+      "1.1.0": {
+        "en": "Migrate config to JSONConfig \nMaintanance update",
+        "de": "Konfiguration nach JSONConfig migriert \nWartungsupdate"
+      },
+      "1.0.21": {
+        "en": "small fixes",
+        "de": "kleine Korrekturen",
+        "ru": "небольшие исправления",
+        "pt": "pequenas correções",
+        "nl": "kleine reparaties",
+        "fr": "petites corrections",
+        "it": "piccole correzioni",
+        "es": "pequeñas correcciones",
+        "pl": "drobne poprawki",
+        "zh-cn": "小修复"
+      }
     },
-    "objects": [],
-    "instanceObjects": []
+    "desc": {
+      "en": "Discover and control devices that support UPnP",
+      "ru": "Обнаружение и управление устройствами, поддерживающих UPnP",
+      "de": "Ermitteln und steuern die Geräte, die UPnP unterstützen",
+      "pt": "Descubra e controle dispositivos que suportam UPnP",
+      "fr": "Découverte et contrôle des périphériques prenant en charge UPnP",
+      "nl": "Apparaten ontdekken en bedienen die UPnP ondersteunen",
+      "es": "Descubrir y controlar dispositivos compatibles con UPnP.",
+      "it": "Scopri e controlla i dispositivi che supportano UPnP",
+      "pl": "Odkrywaj i kontroluj urządzenia obsługujące UPnP",
+      "zh-cn": "发现和控制支持UPnP的设备",
+      "uk": "Знаходьте пристрої з підтримкою UPnP та керуйте ними"
+    },
+    "platform": "Javascript/Node.js",
+    "licenseInformation": {
+      "type": "free",
+      "license": "MIT"
+    },
+    "mode": "daemon",
+    "icon": "upnp.png",
+    "keywords": [
+      "upnp"
+    ],
+    "extIcon": "https://raw.githubusercontent.com/Jey-Cee/ioBroker.upnp/master/admin/upnp.png",
+    "readme": "https://github.com/Jey-Cee/ioBroker.upnp/blob/master/README.md",
+    "loglevel": "info",
+    "type": "network",
+    "tier": 3,
+    "compact": false,
+    "messagebox": true,
+    "supportCustoms": true,
+    "connectionType": "local",
+    "dataSource": "push",
+    "adminUI": {
+      "custom": "json",
+      "config": "json"
+    },
+    "authors": [
+      {
+        "name": "Jey Cee",
+        "email": "iobroker@all-smart.net"
+      }
+    ],
+    "dependencies": [
+      {
+        "js-controller": ">=6.0.11"
+      }
+    ],
+    "globalDependencies": [
+      {
+        "admin": "7.6.20"
+      }
+    ]
+  },
+  "native": {
+    "enableAutoDiscover": "",
+    "enableAutoSubscription": ""
+  },
+  "objects": [],
+  "instanceObjects": []
 }
