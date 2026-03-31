@@ -227,7 +227,7 @@ You can enable polling in admin via objects configuration.
 * (iobroker-bot) Adapter requires node.js >= 20 now.
 * (Jey Cee) Update dependencies
 * (Jey Cee) GH actions
-* (Jey Cee) replace packet xml2js and ip
+* (Jey Cee) replace packet xml2js, request and ip
 
 ### 1.1.0 (2024-09-30)
 * (Jey Cee) Migrate config to JSONConfig 
