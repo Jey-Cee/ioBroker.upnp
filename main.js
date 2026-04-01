@@ -821,12 +821,12 @@ function firstDevLookup(strLocation, cb) {
 														result.root.device[0].deviceList &&
 														result.root.device[0].deviceList[0].device[i] &&
 														result.root.device[0].deviceList[0].device[i].deviceList
-															? result.root.device[0].deviceList[0].device[i].deviceList[0]
-																	.device[i2]
+															? result.root.device[0].deviceList[0].device[i]
+																	.deviceList[0].device[i2]
 															: null;
 
 													if (pathSub) {
-														objectNameSub = `${xmlFN}.${TypeOfSubDevice}.${xmlTypeOfDevice}`;
+														let objectNameSub = `${xmlFN}.${TypeOfSubDevice}.${xmlTypeOfDevice}`;
 														createServiceList(
 															result,
 															xmlFN,
