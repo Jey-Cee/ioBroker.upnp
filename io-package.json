@@ -1,7 +1,7 @@
 {
   "common": {
     "name": "upnp",
-    "version": "1.1.1",
+    "version": "1.1.2",
     "titleLang": {
       "en": "UPnP",
       "de": "UPnP",
@@ -16,6 +16,19 @@
       "zh-cn": "UPnP"
     },
     "news": {
+      "1.1.2": {
+        "en": "fix admin pinned to version 7.6.20",
+        "de": "admin in version 7.6.20 fixieren",
+        "ru": "исправить admin, прикрепленный к версии 7.6.20",
+        "pt": "corrigir administrador preso à versão 7.6.20",
+        "nl": "fix admin gepind naar versie 7.6.20",
+        "fr": "correction de l'administration sur la version 7.6.20",
+        "it": "fix admin pinned alla versione 7.6.20",
+        "es": "admin fijado en la versión 7.6.20",
+        "pl": "fix admin przymocowany do wersji 7.6.20",
+        "uk": "виправити admin pinned до версії 7.6.20",
+        "zh-cn": "固定于7.6.20版本的固定管理员"
+      },
       "1.1.1": {
         "en": "Adapter requires node.js >= 20 now.\nUpdate dependencies\nGH actions\nreplace packet xml2js, request and ip",
         "de": "Adapter benötigt jetzt node.js >= 20.\nAbhängigkeiten aktualisiert\nGH-Actions aktualisiert\nPakete ersetzt xml2js, request und ip",
