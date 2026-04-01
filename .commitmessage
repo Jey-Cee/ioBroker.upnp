@@ -1,0 +1,3 @@
+chore: release v1.1.3
+
+* fix TypeError: Cannot read properties of undefined (reading 'deviceList')
