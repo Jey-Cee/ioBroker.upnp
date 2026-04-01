@@ -222,7 +222,7 @@ You can enable polling in admin via objects configuration.
 -->
 
 ## Changelog
-### **WORK IN PROGRESS**
+### 1.1.5 (2026-04-01)
 * fix lint issues
 
 ### 1.1.4 (2026-04-01)

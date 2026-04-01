@@ -1,7 +1,7 @@
 {
   "common": {
     "name": "upnp",
-    "version": "1.1.4",
+    "version": "1.1.5",
     "titleLang": {
       "en": "UPnP",
       "de": "UPnP",
@@ -16,6 +16,19 @@
       "zh-cn": "UPnP"
     },
     "news": {
+      "1.1.5": {
+        "en": "fix lint issues",
+        "de": "lint probleme beheben",
+        "ru": "устранение проблем со смазкой",
+        "pt": "corrigir problemas com o lint",
+        "nl": "pluisproblemen oplossen",
+        "fr": "correction des problèmes de linte",
+        "it": "risolvere problemi di lintuizione",
+        "es": "solucionar problemas de lint",
+        "pl": "rozwiązać problemy z kłami",
+        "uk": "фіксувати проблеми з відтінком",
+        "zh-cn": "解决问题"
+      },
       "1.1.4": {
         "en": "fix TypeError: Cannot read properties of undefined (reading 'deviceList')",
         "de": "fix TypeError: Nicht definierte Eigenschaften lesen (lesen \"deviceList\")",
