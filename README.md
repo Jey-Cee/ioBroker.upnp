@@ -222,6 +222,10 @@ You can enable polling in admin via objects configuration.
 -->
 
 ## Changelog
+
+### **WORK IN PROGRESS**
+* fix admin pinned to version 7.6.20
+
 ### 1.1.1 (2026-03-31)
 * (iobroker-bot) Adapter requires node.js >= 20 now.
 * (Jey Cee) Update dependencies
