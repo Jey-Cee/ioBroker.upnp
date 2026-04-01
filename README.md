@@ -222,6 +222,9 @@ You can enable polling in admin via objects configuration.
 -->
 
 ## Changelog
+### **WORK IN PROGRESS**
+* fix TypeError: Cannot read properties of undefined (reading 'deviceList')
+
 ### 1.1.2 (2026-04-01)
 * fix admin pinned to version 7.6.20
 

@@ -594,17 +594,23 @@ function firstDevLookup(strLocation, cb) {
 												},
 											},
 										}); //END SubDevice Object
-										let pathSub = result.root.device[0].deviceList[0].device[i];
-										let objectNameSub = `${xmlFN}.${xmlTypeOfDevice}`;
-										createServiceList(
-											result,
-											xmlFN,
-											xmlTypeOfDevice,
-											objectNameSub,
-											strLocation,
-											strPort,
-											pathSub,
-										);
+										let pathSub =
+											result.root.device[0].deviceList &&
+											result.root.device[0].deviceList[0].device
+												? result.root.device[0].deviceList[0].device[i]
+												: null;
+										if (pathSub) {
+											let objectNameSub = `${xmlFN}.${xmlTypeOfDevice}`;
+											createServiceList(
+												result,
+												xmlFN,
+												xmlTypeOfDevice,
+												objectNameSub,
+												strLocation,
+												strPort,
+												pathSub,
+											);
+										}
 										const aliveID = `${adapter.namespace}.${xmlFN}.${xmlTypeOfDevice}.Alive`;
 										addTask({
 											name: 'setObjectNotExists',
@@ -633,6 +639,8 @@ function firstDevLookup(strLocation, cb) {
 
 										//START - Creating SubDevices list for a sub-device
 										if (
+											path.deviceList &&
+											path.deviceList[0].device[i] &&
 											path.deviceList[0].device[i].deviceList &&
 											path.deviceList[0].device[i].deviceList[0].device
 										) {
@@ -642,7 +650,7 @@ function firstDevLookup(strLocation, cb) {
 											let i2;
 
 											if (i_SubSubDevices) {
-												for (i2 = i_SubSubDevices - 1; i2 >= 0; i--) {
+												for (i2 = i_SubSubDevices - 1; i2 >= 0; i2--) {
 													adapter.log.debug(
 														`Device ${i2} ${
 															path.deviceList[0].device[i].deviceList[0].device[i2]
@@ -810,18 +818,25 @@ function firstDevLookup(strLocation, cb) {
 														},
 													}); //END SubDevice Object
 													pathSub =
-														result.root.device[0].deviceList[0].device[i].deviceList[0]
-															.device[i2];
-													objectNameSub = `${xmlFN}.${TypeOfSubDevice}.${xmlTypeOfDevice}`;
-													createServiceList(
-														result,
-														xmlFN,
-														`${TypeOfSubDevice}.${xmlTypeOfDevice}`,
-														objectNameSub,
-														strLocation,
-														strPort,
-														pathSub,
-													);
+														result.root.device[0].deviceList &&
+														result.root.device[0].deviceList[0].device[i] &&
+														result.root.device[0].deviceList[0].device[i].deviceList
+															? result.root.device[0].deviceList[0].device[i].deviceList[0]
+																	.device[i2]
+															: null;
+
+													if (pathSub) {
+														objectNameSub = `${xmlFN}.${TypeOfSubDevice}.${xmlTypeOfDevice}`;
+														createServiceList(
+															result,
+															xmlFN,
+															`${TypeOfSubDevice}.${xmlTypeOfDevice}`,
+															objectNameSub,
+															strLocation,
+															strPort,
+															pathSub,
+														);
+													}
 													const aliveID = `${adapter.namespace}.${xmlFN}.${TypeOfSubDevice}.${xmlTypeOfDevice}.Alive`;
 													addTask({
 														name: 'setObjectNotExists',
