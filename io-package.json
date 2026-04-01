@@ -1,7 +1,7 @@
 {
   "common": {
     "name": "upnp",
-    "version": "1.1.2",
+    "version": "1.1.3",
     "titleLang": {
       "en": "UPnP",
       "de": "UPnP",
@@ -16,6 +16,19 @@
       "zh-cn": "UPnP"
     },
     "news": {
+      "1.1.3": {
+        "en": "fix TypeError: Cannot read properties of undefined (reading 'deviceList')",
+        "de": "fix TypeError: Nicht definierte Eigenschaften lesen (lesen \"deviceList\")",
+        "ru": "исправление ошибки TypeError: не может считывать свойства неопределенного (чтение \"deviceList\")",
+        "pt": "corrigir TipoError: Não é possível ler propriedades de indefinidas (lendo 'dispositivoList')",
+        "nl": "fix TypeFout: Kan eigenschappen van ongedefinieerde niet lezen (lezen van 'deviceList')",
+        "fr": "correction TypeErreur: Impossible de lire les propriétés non définies (lecture de 'deviceList')",
+        "it": "fix TypeError: Non è possibile leggere le proprietà non definite (leggendo 'dispositivoLista')",
+        "es": "tipoError: No se pueden leer las propiedades no definidas (leer 'deviceList')",
+        "pl": "fix TypeError: Nie można odczytać właściwości niezdefiniowanych (czytanie 'DeviceList')",
+        "uk": "виправити TypeError: Не можна прочитати властивості невизначеного (читування 'deviceList')",
+        "zh-cn": "固定类型错误: 无法读取未定义的属性( 正在读取“ deviceList ”)"
+      },
       "1.1.2": {
         "en": "fix admin pinned to version 7.6.20",
         "de": "admin in version 7.6.20 fixieren",
