@@ -28,48 +28,6 @@
         "pl": "rozwiązać problemy z kłami",
         "uk": "фіксувати проблеми з відтінком",
         "zh-cn": "解决问题"
-      },
-      "1.1.2": {
-        "en": "fix admin pinned to version 7.6.20",
-        "de": "admin in version 7.6.20 fixieren",
-        "ru": "исправить admin, прикрепленный к версии 7.6.20",
-        "pt": "corrigir administrador preso à versão 7.6.20",
-        "nl": "fix admin gepind naar versie 7.6.20",
-        "fr": "correction de l'administration sur la version 7.6.20",
-        "it": "fix admin pinned alla versione 7.6.20",
-        "es": "admin fijado en la versión 7.6.20",
-        "pl": "fix admin przymocowany do wersji 7.6.20",
-        "uk": "виправити admin pinned до версії 7.6.20",
-        "zh-cn": "固定于7.6.20版本的固定管理员"
-      },
-      "1.1.1": {
-        "en": "Adapter requires node.js >= 20 now.\nUpdate dependencies\nGH actions\nreplace packet xml2js, request and ip",
-        "de": "Adapter benötigt jetzt node.js >= 20.\nAbhängigkeiten aktualisiert\nGH-Actions aktualisiert\nPakete ersetzt xml2js, request und ip",
-        "ru": "Адаптер требует node.js >= 20 сейчас.\nОбновление зависимостей\nДействия GH\nзаменить пакет xml2js, запрос и ip",
-        "pt": "O adaptador requer gnod.js >= 20 agora.\nAtualizar dependências\nAcções de GH\nsubstituir o pacote xml2js, request e ip",
-        "nl": "Voor de adapter zijn node.js > 20 nu nodig.\nAfhankelijkheden bijwerken\nGH-acties\npakket xml2js, verzoek en ip vervangen",
-        "fr": "Adapter nécessite node.js >= 20 maintenant.\nMise à jour des dépendances\nActions de GH\nremplacer paquet xml2js, requête et ip",
-        "it": "Adattatore richiede node.js >= 20 ora.\nDipendenze di aggiornamento\nGH azioni\nsostituire pacchetto xml2js, richiesta e ip",
-        "es": "Adaptador requiere node.js >= 20 ahora.\nActualizar las dependencias\nGH actions\nreemplazar el paquete xml2js, petición y ip",
-        "pl": "Adapter wymaga node.js > = 20 teraz.\nAktualizuj zależności\nDziałania GH\nzastąpić pakiet xml2js, żądanie i ip",
-        "uk": "Адаптер вимагає node.js >= 20 тепер.\nОновлення залежності\nДії ГХ\nзамінний пакет xml2js, запит та ip",
-        "zh-cn": "适配器需要节点.js >= 20 现在.\n更新依赖关系\nGH 动作\n替换数据包 xml2js, 请求和 ip"
-      },
-      "1.1.0": {
-        "en": "Migrate config to JSONConfig \nMaintanance update",
-        "de": "Konfiguration nach JSONConfig migriert \nWartungsupdate"
-      },
-      "1.0.21": {
-        "en": "small fixes",
-        "de": "kleine Korrekturen",
-        "ru": "небольшие исправления",
-        "pt": "pequenas correções",
-        "nl": "kleine reparaties",
-        "fr": "petites corrections",
-        "it": "piccole correzioni",
-        "es": "pequeñas correcciones",
-        "pl": "drobne poprawki",
-        "zh-cn": "小修复"
       }
     },
     "desc": {

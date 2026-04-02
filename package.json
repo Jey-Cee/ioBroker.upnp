@@ -43,8 +43,6 @@
     "@tsconfig/node22": "^22.0.5",
     "@types/iobroker": "npm:@iobroker/types@^7.1.0",
     "@types/node": "^25.5.0",
-    "chai-as-promised": "^8.0.2",
-    "sinon-chai": "^4.0.1",
     "typescript": "~6.0.2"
   },
   "bugs": {
