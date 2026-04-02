@@ -15,6 +15,9 @@ This adapter helps users discover and control UPnP-compatible devices in their n
 -->
 
 ## Changelog
+### **WORK IN PROGRESS**
+* Split documentation into separate files for German and English
+
 ### 1.1.5 (2026-04-01)
 * fix lint issues
 
