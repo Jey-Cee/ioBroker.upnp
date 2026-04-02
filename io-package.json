@@ -1,7 +1,7 @@
 {
   "common": {
     "name": "upnp",
-    "version": "1.1.5",
+    "version": "1.1.6",
     "titleLang": {
       "en": "UPnP",
       "de": "UPnP",
@@ -16,6 +16,19 @@
       "zh-cn": "UPnP"
     },
     "news": {
+      "1.1.6": {
+        "en": "Split documentation into separate files for German and English",
+        "de": "Dokumentation in separate Dateien für Deutsch und Englisch teilen",
+        "ru": "Разделить документацию на отдельные файлы на немецком и английском языках",
+        "pt": "Dividir documentação em arquivos separados para alemão e inglês",
+        "nl": "Documenten splitsen in aparte bestanden voor Duits en Engels",
+        "fr": "Séparer la documentation en fichiers séparés pour l'allemand et l'anglais",
+        "it": "Dividere la documentazione in file separati per tedesco e inglese",
+        "es": "Dividir documentación en archivos separados para alemán e inglés",
+        "pl": "Podziel dokumentację na oddzielne pliki dla niemieckiego i angielskiego",
+        "uk": "Розділення документації на окремі файли для німецької та англійської",
+        "zh-cn": "将文档分割为单独的德语和英语文件"
+      },
       "1.1.5": {
         "en": "fix lint issues",
         "de": "lint probleme beheben",
