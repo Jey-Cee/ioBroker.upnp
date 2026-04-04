@@ -2103,7 +2103,6 @@ function createMessage(sType, aName, _ip, _port, cURL, body, actionID, cb) {
 					try {
 						const soapEnvelope =
 							result['s:Envelope'] || result['SOAP-ENV:Envelope'] || result['Envelope'] || null;
-						const envelope = soapEnvelope || result;
 						const body = result['Body']
 							? result['Body']
 							: soapEnvelope
