@@ -2101,14 +2101,13 @@ function createMessage(sType, aName, _ip, _port, cURL, body, actionID, cb) {
 					}
 
 					try {
-						const envelope =
-							result['s:Envelope'] || result['SOAP-ENV:Envelope'] || result['Envelope'] || result['Body']
-								? result
-								: null;
+						const soapEnvelope =
+							result['s:Envelope'] || result['SOAP-ENV:Envelope'] || result['Envelope'] || null;
+						const envelope = soapEnvelope || result;
 						const body = result['Body']
 							? result['Body']
-							: envelope
-								? envelope['s:Body'] || envelope['SOAP-ENV:Body'] || envelope['Body']
+							: soapEnvelope
+								? soapEnvelope['s:Body'] || soapEnvelope['SOAP-ENV:Body'] || soapEnvelope['Body']
 								: null;
 						const response = body ? (Array.isArray(body) ? body[0] : body) : null;
 
