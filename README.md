@@ -15,6 +15,10 @@ This adapter helps users discover and control UPnP-compatible devices in their n
 -->
 
 ## Changelog
+### 1.1.9 (2026-04-04)
+* fix: remove unused envelope variable (lint)
+* fix: SOAP envelope operator-precedence bug in createMessage()
+
 ### 1.1.8 (2026-04-03)
 * chore(deps): bump lodash from 4.17.23 to 4.18.1
 
