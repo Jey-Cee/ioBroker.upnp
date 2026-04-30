@@ -24,7 +24,7 @@
   "dependencies": {
     "@iobroker/adapter-core": "^3.3.2",
     "@xmldom/xmldom": "^0.9.10",
-    "fast-xml-parser": "^5.5.9",
+    "fast-xml-parser": "^5.7.1",
     "neoip": "^3.1.0",
     "node-schedule": "^2.1.1",
     "node-ssdp": "^4.0.1",
