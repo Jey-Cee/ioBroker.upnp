@@ -15,6 +15,9 @@ This adapter helps users discover and control UPnP-compatible devices in their n
 -->
 
 ## Changelog
+### **WORK IN PROGRESS**
+- (copilot) Adapter requires node.js >= 22 now
+
 ### 1.1.9 (2026-04-04)
 * fix: remove unused envelope variable (lint)
 * fix: SOAP envelope operator-precedence bug in createMessage()
