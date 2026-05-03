@@ -149,6 +149,8 @@ Breaking change: naming was changed and command to poll has another name - "requ
 ### 0.1.0
 * (jey-cee) initial release
 
+[Older changelogs can be found there](CHANGELOG_OLD.md)
+
 ## License
 The MIT License (MIT)
 
