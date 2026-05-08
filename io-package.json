@@ -1,7 +1,7 @@
 {
   "common": {
     "name": "upnp",
-    "version": "1.1.9",
+    "version": "1.1.10",
     "titleLang": {
       "en": "UPnP",
       "de": "UPnP",
@@ -16,6 +16,19 @@
       "zh-cn": "UPnP"
     },
     "news": {
+      "1.1.10": {
+        "en": "* chore(deps-dev): bump typescript from 6.0.2 to 6.0.3\n* chore(deps-dev): bump @types/node from 25.5.0 to 25.6.0\n* chore(deps): bump @xmldom/xmldom from 0.9.9 to 0.9.10\n* chore(deps-dev): bump protobufjs from 7.5.4 to 7.5.5\n* chore(deps): bump follow-redirects from 1.15.11 to 1.16.0\n* chore(deps): bump axios from 1.14.0 to 1.15.0\n* Update from template: X0000-updateNodeJsAtTestAndRelease",
+        "de": "Abhängigkeiten aktualisiert",
+        "ru": "Обновлены зависимости",
+        "pt": "Dependências atualizadas",
+        "nl": "Afhankelijkheden bijgewerkt",
+        "fr": "Dépendances mises à jour",
+        "it": "Dipendenze aggiornate",
+        "es": "Dependencias actualizadas",
+        "pl": "Zaktualizowano zależności",
+        "uk": "Оновлено залежності",
+        "zh-cn": "更新依赖"
+      },
       "1.1.9": {
         "en": "* fix: remove unused envelope variable (lint)\n* fix: SOAP envelope operator-precedence bug in createMessage()",
         "de": "Abhängigkeiten aktualisiert",
