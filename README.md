@@ -15,6 +15,8 @@ This adapter helps users discover and control UPnP-compatible devices in their n
 -->
 
 ## Changelog
+### **WORK IN PROGRESS**
+- (copilot) Adapter requires node.js >= 22 now
 ### 1.1.10 (2026-05-03)
 * chore(deps-dev): bump typescript from 6.0.2 to 6.0.3
 * chore(deps-dev): bump @types/node from 25.5.0 to 25.6.0
