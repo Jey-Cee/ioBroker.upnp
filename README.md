@@ -17,6 +17,18 @@ This adapter helps users discover and control UPnP-compatible devices in their n
 ## Changelog
 ### **WORK IN PROGRESS**
 - (copilot) Adapter requires node.js >= 22 now
+### 1.1.11 (2026-06-03)
+* chore(deps-dev): bump protobufjs from 7.5.5 to 7.5.8
+* chore(deps-dev): bump @protobufjs/utf8 from 1.1.0 to 1.1.1
+* chore(deps): bump fast-xml-builder from 1.1.5 to 1.2.0
+* chore(deps-dev): bump fast-uri from 3.1.0 to 3.1.2
+* chore(deps): bump fast-xml-parser from 5.7.1 to 5.7.2
+* chore(deps): bump axios from 1.15.0 to 1.16.0
+* Update from template: S6020-addChangelogOld
+* Update from template: X0000-dropNode20
+* Update from template: W8917-dependabot-addIgnoreTypesNode
+* chore(deps): bump fast-xml-parser from 5.5.9 to 5.7.1
+
 ### 1.1.10 (2026-05-03)
 * chore(deps-dev): bump typescript from 6.0.2 to 6.0.3
 * chore(deps-dev): bump @types/node from 25.5.0 to 25.6.0
