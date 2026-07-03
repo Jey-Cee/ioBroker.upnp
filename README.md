@@ -17,6 +17,16 @@ This adapter helps users discover and control UPnP-compatible devices in their n
 ## Changelog
 ### **WORK IN PROGRESS**
 - (copilot) Adapter requires node.js >= 22 now
+### 1.1.12 (2026-07-03)
+* chore(deps-dev): bump @alcalzone/release-script from 5.1.1 to 5.2.1
+* chore(deps-dev): bump @alcalzone/release-script-plugin-license
+* chore(deps-dev): bump @alcalzone/release-script-plugin-iobroker
+* chore(deps-dev): bump @alcalzone/release-script-plugin-manual-review
+* chore(deps-dev): bump @iobroker/eslint-config from 2.2.0 to 2.3.4
+* chore(deps-dev): bump @types/node from 25.6.0 to 25.9.4
+* chore(deps-dev): bump js-yaml from 4.1.1 to 4.2.0
+* chore(deps-dev): bump http-proxy-middleware from 3.0.5 to 3.0.7
+
 ### 1.1.11 (2026-06-03)
 * chore(deps-dev): bump protobufjs from 7.5.5 to 7.5.8
 * chore(deps-dev): bump @protobufjs/utf8 from 1.1.0 to 1.1.1
