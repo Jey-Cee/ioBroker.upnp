@@ -40,7 +40,7 @@
     "@iobroker/dev-server": "^0.8.0",
     "@iobroker/eslint-config": "^2.3.4",
     "@iobroker/testing": "^5.2.2",
-    "@tsconfig/node22": "^22.0.5",
+    "@tsconfig/node22": "^22.0.6",
     "@types/iobroker": "npm:@iobroker/types@^7.1.0",
     "@types/node": "^25.9.4",
     "typescript": "~6.0.3"
