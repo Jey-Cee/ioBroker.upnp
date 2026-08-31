@@ -43,7 +43,7 @@
     "@tsconfig/node22": "^22.0.6",
     "@types/iobroker": "npm:@iobroker/types@^7.1.0",
     "@types/node": "^25.9.5",
-    "typescript": "~6.0.3"
+    "typescript": "~7.0.2"
   },
   "bugs": {
     "url": "https://github.com/Jey-Cee/ioBroker.upnp/issues"
