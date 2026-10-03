@@ -1,7 +1,7 @@
 {
   "common": {
     "name": "upnp",
-    "version": "1.1.14",
+    "version": "1.1.15",
     "titleLang": {
       "en": "UPnP",
       "de": "UPnP",
@@ -16,6 +16,19 @@
       "zh-cn": "UPnP"
     },
     "news": {
+      "1.1.15": {
+        "en": "* chore(deps-dev): bump brace-expansion from 1.1.18 to 1.1.21\n* chore(deps-dev): bump @grpc/grpc-js from 1.14.3 to 1.14.5\n* chore(deps): bump axios from 1.18.1 to 1.20.0\n* chore(deps-dev): bump @types/node from 25.9.5 to 25.9.8\n* chore(deps-dev): bump immutable from 3.8.3 to 3.8.4\n* chore(deps-dev): bump js-yaml from 4.3.1 to 4.3.2",
+        "de": "Abhängigkeiten aktualisiert",
+        "ru": "Обновлены зависимости",
+        "pt": "Dependências atualizadas",
+        "nl": "Afhankelijkheden bijgewerkt",
+        "fr": "Dépendances mises à jour",
+        "it": "Dipendenze aggiornate",
+        "es": "Dependencias actualizadas",
+        "pl": "Zaktualizowano zależności",
+        "uk": "Оновлено залежності",
+        "zh-cn": "更新依赖"
+      },
       "1.1.14": {
         "en": "* chore(deps-dev): bump @humanfs/node from 0.16.7 to 0.16.8\n* chore(deps-dev): bump browserslist from 4.28.4 to 4.28.8\n* chore(deps-dev): bump fast-uri from 3.1.5 to 3.1.7\n* chore(deps-dev): bump @iobroker/testing from 5.2.2 to 5.3.0\n* chore(deps-dev): bump @types/node from 25.9.4 to 25.9.5\n* chore(deps-dev): bump @alcalzone/release-script-plugin-license\n* chore(deps-dev): bump @tsconfig/node22 from 22.0.5 to 22.0.6\n* chore(deps): bump @xmldom/xmldom from 0.9.10 to 0.9.12\n* chore(deps-dev): bump brace-expansion from 1.1.13 to 1.1.18\n* chore(deps-dev): bump engine.io from 6.6.6 to 6.6.9\n* chore(deps-dev): bump js-yaml from 4.2.0 to 4.3.1\n* chore(deps-dev): bump fast-uri from 3.1.4 to 3.1.5\n* chore(deps-dev): bump socket.io-parser from 4.2.6 to 4.2.7",
         "de": "Abhängigkeiten aktualisiert",
@@ -132,19 +145,6 @@
         "pl": "Podziel dokumentację na oddzielne pliki dla niemieckiego i angielskiego",
         "uk": "Розділення документації на окремі файли для німецької та англійської",
         "zh-cn": "将文档分割为单独的德语和英语文件"
-      },
-      "1.1.5": {
-        "en": "fix lint issues",
-        "de": "lint probleme beheben",
-        "ru": "устранение проблем со смазкой",
-        "pt": "corrigir problemas com o lint",
-        "nl": "pluisproblemen oplossen",
-        "fr": "correction des problèmes de linte",
-        "it": "risolvere problemi di lintuizione",
-        "es": "solucionar problemas de lint",
-        "pl": "rozwiązać problemy z kłami",
-        "uk": "фіксувати проблеми з відтінком",
-        "zh-cn": "解决问题"
       }
     },
     "desc": {
