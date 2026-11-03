@@ -1,7 +1,7 @@
 {
   "common": {
     "name": "upnp",
-    "version": "1.1.15",
+    "version": "1.1.16",
     "titleLang": {
       "en": "UPnP",
       "de": "UPnP",
@@ -16,6 +16,19 @@
       "zh-cn": "UPnP"
     },
     "news": {
+      "1.1.16": {
+        "en": "* chore(deps): bump follow-redirects from 1.16.1 to 1.16.2\n* chore(deps-dev): bump @types/node from 25.9.8 to 25.9.9\n* chore(deps-dev): bump fast-uri from 3.1.7 to 3.1.9\n* chore(deps): bump follow-redirects from 1.16.0 to 1.16.1\n* chore(deps-dev): bump proxy-addr from 2.0.7 to 2.0.8",
+        "de": "Abhängigkeiten aktualisiert",
+        "ru": "Обновлены зависимости",
+        "pt": "Dependências atualizadas",
+        "nl": "Afhankelijkheden bijgewerkt",
+        "fr": "Dépendances mises à jour",
+        "it": "Dipendenze aggiornate",
+        "es": "Dependencias actualizadas",
+        "pl": "Zaktualizowano zależności",
+        "uk": "Оновлено залежності",
+        "zh-cn": "更新依赖"
+      },
       "1.1.15": {
         "en": "* chore(deps-dev): bump brace-expansion from 1.1.18 to 1.1.21\n* chore(deps-dev): bump @grpc/grpc-js from 1.14.3 to 1.14.5\n* chore(deps): bump axios from 1.18.1 to 1.20.0\n* chore(deps-dev): bump @types/node from 25.9.5 to 25.9.8\n* chore(deps-dev): bump immutable from 3.8.3 to 3.8.4\n* chore(deps-dev): bump js-yaml from 4.3.1 to 4.3.2",
         "de": "Abhängigkeiten aktualisiert",
@@ -121,19 +134,6 @@
         "zh-cn": "更新依赖"
       },
       "1.1.7": {
-        "en": "Split documentation into separate files for German and English",
-        "de": "Dokumentation in separate Dateien für Deutsch und Englisch teilen",
-        "ru": "Разделить документацию на отдельные файлы на немецком и английском языках",
-        "pt": "Dividir documentação em arquivos separados para alemão e inglês",
-        "nl": "Documenten splitsen in aparte bestanden voor Duits en Engels",
-        "fr": "Séparer la documentation en fichiers séparés pour l'allemand et l'anglais",
-        "it": "Dividere la documentazione in file separati per tedesco e inglese",
-        "es": "Dividir documentación en archivos separados para alemán e inglés",
-        "pl": "Podziel dokumentację na oddzielne pliki dla niemieckiego i angielskiego",
-        "uk": "Розділення документації на окремі файли для німецької та англійської",
-        "zh-cn": "将文档分割为单独的德语和英语文件"
-      },
-      "1.1.6": {
         "en": "Split documentation into separate files for German and English",
         "de": "Dokumentation in separate Dateien für Deutsch und Englisch teilen",
         "ru": "Разделить документацию на отдельные файлы на немецком и английском языках",
